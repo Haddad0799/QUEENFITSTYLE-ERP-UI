@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* Class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Light palette (default) ─── */
+:root {
+  --brand: #db2777;
+  --brand-hover: #be185d;
+  --brand-soft: #fdf2f8;
+  --brand-muted: #fce7f3;
+  --on-brand: #ffffff;
+
+  --base: #f9fafb;
+  --surface: #ffffff;
+  --surface-alt: #f3f4f6;
+  --surface-input: #ffffff;
+
+  --edge: #e5e7eb;
+  --edge-strong: #d1d5db;
+  --edge-subtle: #f3f4f6;
+
+  --heading: #111827;
+  --strong: #1f2937;
+  --body: #374151;
+  --label: #4b5563;
+  --muted: #6b7280;
+  --faint: #9ca3af;
+
+  --success: #166534;
+  --success-soft: #dcfce7;
+  --success-edge: rgba(34, 197, 94, 0.4);
+  --danger: #991b1b;
+  --danger-soft: #fee2e2;
+  --danger-edge: rgba(220, 38, 38, 0.4);
+  --danger-action: #dc2626;
+  --warning: #9a3412;
+  --warning-soft: #ffedd5;
+  --warning-edge: rgba(249, 115, 22, 0.4);
+}
+
+/* ─── Dark palette ─── */
+.dark {
+  --brand: #ec4899;
+  --brand-hover: #db2777;
+  --brand-soft: rgba(136, 19, 55, 0.2);
+  --brand-muted: rgba(136, 19, 55, 0.3);
+  --on-brand: #030712;
+
+  --base: #030712;
+  --surface: #111827;
+  --surface-alt: #1f2937;
+  --surface-input: #111827;
+
+  --edge: #374151;
+  --edge-strong: #4b5563;
+  --edge-subtle: #1f2937;
+
+  --heading: #f9fafb;
+  --strong: #f3f4f6;
+  --body: #e5e7eb;
+  --label: #d1d5db;
+  --muted: #9ca3af;
+  --faint: #6b7280;
+
+  --success: #4ade80;
+  --success-soft: rgba(20, 83, 45, 0.3);
+  --success-edge: rgba(74, 222, 128, 0.4);
+  --danger: #f87171;
+  --danger-soft: rgba(127, 29, 29, 0.3);
+  --danger-edge: rgba(248, 113, 113, 0.4);
+  --danger-action: #ef4444;
+  --warning: #fb923c;
+  --warning-soft: rgba(124, 45, 18, 0.3);
+  --warning-edge: rgba(251, 146, 60, 0.4);
+}
+
+/* ─── Tailwind theme tokens ─── */
+@theme {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-muted: var(--brand-muted);
+  --color-on-brand: var(--on-brand);
+
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-input: var(--surface-input);
+
+  --color-edge: var(--edge);
+  --color-edge-strong: var(--edge-strong);
+  --color-edge-subtle: var(--edge-subtle);
+
+  --color-heading: var(--heading);
+  --color-strong: var(--strong);
+  --color-body: var(--body);
+  --color-label: var(--label);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-edge: var(--success-edge);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-edge: var(--danger-edge);
+  --color-danger-action: var(--danger-action);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-edge: var(--warning-edge);
+}
+
+/* ─── Base styles ─── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", sans-serif;
+  background: var(--base);
+  color: var(--body);
+}
+
+button,
+[role="button"],
+summary {
+  cursor: pointer;
+}
+
+#root {
+  display: flex;
+}
