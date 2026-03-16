@@ -81,6 +81,7 @@ export type ProductImageDTO = {
 
 export type ProductColorImagesDTO = {
   colorName: string;
+  hexCode: string;
   images: ProductImageDTO[];
 };
 

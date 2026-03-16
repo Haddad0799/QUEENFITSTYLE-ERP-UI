@@ -76,6 +76,7 @@ export function ProductDetailsPage() {
       stockQuantity: '',
       costPrice: '',
       sellingPrice: '',
+      codeManuallyEdited: false,
     },
   ]);
 
@@ -110,27 +111,24 @@ export function ProductDetailsPage() {
   const [isLoadingPresignedUrls, setIsLoadingPresignedUrls] = useState(false);
   const [imageStartOrder, setImageStartOrder] = useState(1);
 
-  // lightbox for SKU images
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-
   // image deletion selection
   const [selectedImageIds, setSelectedImageIds] = useState<Set<number>>(new Set());
   const [isDeletingImages, setIsDeletingImages] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const skuImagesChangedRef = useRef(false);
 
-  // image reorder in SKU details
-  const [reorderedImages, setReorderedImages] = useState<import('../types/catalog-aux').SkuImageDTO[]>([]);
-  const [isReorderDirty, setIsReorderDirty] = useState(false);
-  const [isSavingReorder, setIsSavingReorder] = useState(false);
-  const [reorderError, setReorderError] = useState<string | null>(null);
-  const [imgDragFrom, setImgDragFrom] = useState<number | null>(null);
-  const [imgDragOver, setImgDragOver] = useState<number | null>(null);
-
   // upload preview drag state
   const [uploadDragFrom, setUploadDragFrom] = useState<number | null>(null);
   const [uploadDragOver, setUploadDragOver] = useState<number | null>(null);
+
+  // gallery reorder (product images by color)
+  const [galleryReorder, setGalleryReorder] = useState<Record<string, import('../types/catalog-aux').ProductImageDTO[]>>({});
+  const [galleryDirty, setGalleryDirty] = useState<Set<string>>(new Set());
+  const [gallerySaving, setGallerySaving] = useState<string | null>(null);
+  const [galleryReorderError, setGalleryReorderError] = useState<string | null>(null);
+  const [galleryDragColor, setGalleryDragColor] = useState<string | null>(null);
+  const [galleryDragFrom, setGalleryDragFrom] = useState<number | null>(null);
+  const [galleryDragOver, setGalleryDragOver] = useState<number | null>(null);
 
   // image lightbox
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
@@ -273,9 +271,9 @@ export function ProductDetailsPage() {
     const loadAux = async () => {
       try {
         const [colorsRes, sizesRes, categoriesRes] = await Promise.all([
-          apiClient.get<ColorsAdminDetailsDTO>('/admin/colors'),
-          apiClient.get<SizesAdminDetailsDTO>('/admin/sizes'),
-          apiClient.get<CategoriesDetailsDTO>('/admin/categories'),
+          apiClient.get<ColorsAdminDetailsDTO>('/erp/colors'),
+          apiClient.get<SizesAdminDetailsDTO>('/erp/sizes'),
+          apiClient.get<CategoriesDetailsDTO>('/erp/categories'),
         ]);
         setColors(colorsRes.coresDispoiveis ?? []);
         setSizes(sizesRes.tamanhosDisponiveis ?? []);
@@ -337,8 +335,20 @@ export function ProductDetailsPage() {
         stockQuantity: '',
         costPrice: '',
         sellingPrice: '',
+        codeManuallyEdited: false,
       },
     ]);
+  };
+
+  const removeAccents = (str: string) =>
+    str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const generateSkuCode = (colorId: string, sizeId: string) => {
+    if (!data?.slug) return '';
+    const colorName = colors.find((c) => c.id === Number(colorId))?.nome ?? '';
+    const sizeLabel = sizes.find((s) => s.id === Number(sizeId))?.etiqueta ?? '';
+    const parts = [data.slug, colorName, sizeLabel].filter(Boolean);
+    return removeAccents(parts.join('-')).toUpperCase().replace(/\s+/g, '-');
   };
 
   const handleSkuRowChange = (
@@ -347,7 +357,36 @@ export function ProductDetailsPage() {
     value: string,
   ) => {
     setSkuRows((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        const updated = { ...row, [field]: value };
+        if (field === 'code') {
+          updated.codeManuallyEdited = true;
+        }
+        if (
+          (field === 'colorId' || field === 'sizeId') &&
+          !updated.codeManuallyEdited
+        ) {
+          updated.code = generateSkuCode(
+            field === 'colorId' ? value : row.colorId,
+            field === 'sizeId' ? value : row.sizeId,
+          );
+        }
+        return updated;
+      }),
+    );
+  };
+
+  const handleRestoreSkuCode = (index: number) => {
+    setSkuRows((prev) =>
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        return {
+          ...row,
+          code: generateSkuCode(row.colorId, row.sizeId),
+          codeManuallyEdited: false,
+        };
+      }),
     );
   };
 
@@ -365,6 +404,7 @@ export function ProductDetailsPage() {
         stockQuantity: '',
         costPrice: '',
         sellingPrice: '',
+        codeManuallyEdited: false,
       },
     ]);
   };
@@ -453,9 +493,6 @@ export function ProductDetailsPage() {
         `/erp/products/${productId}/skus/${skuId}`,
       );
       setSelectedSku(details);
-      setReorderedImages(details.images ?? []);
-      setIsReorderDirty(false);
-      setReorderError(null);
     } catch (err) {
       setSkuDetailsError(
         err instanceof Error
@@ -617,8 +654,6 @@ export function ProductDetailsPage() {
   const handleCancelEditPrice = () => {
     setIsEditingPrice(false);
     setPriceError(null);
-    setIsReorderDirty(false);
-    setReorderError(null);
   };
 
   const handleSavePrice = async () => {
@@ -658,71 +693,6 @@ export function ProductDetailsPage() {
     }
   };
 
-  // image reorder drag handlers (swap approach)
-  const handleImgDragStart = (e: React.DragEvent, idx: number) => {
-    setImgDragFrom(idx);
-    setImgDragOver(idx);
-    try {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', String(idx));
-    } catch {}
-  };
-
-  const handleImgDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    try { e.dataTransfer.dropEffect = 'move'; } catch {}
-    if (imgDragFrom === null || idx === imgDragFrom) return;
-    // swap on hover
-    setReorderedImages((prev) => {
-      const list = [...prev];
-      [list[imgDragFrom!], list[idx]] = [list[idx], list[imgDragFrom!]];
-      return list;
-    });
-    setImgDragFrom(idx);
-    setImgDragOver(idx);
-    setIsReorderDirty(true);
-  };
-
-  const handleImgDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setImgDragFrom(null);
-    setImgDragOver(null);
-  };
-
-  const handleImgDragEnd = () => {
-    setImgDragFrom(null);
-    setImgDragOver(null);
-  };
-
-  const handleSaveImageOrder = async () => {
-    if (!productId || !selectedSku) return;
-    setIsSavingReorder(true);
-    setReorderError(null);
-
-    const colorId = selectedSku.attributes.colorId;
-    const orderedIds = reorderedImages.map((img) => img.id);
-
-    try {
-      await apiClient.patch(
-        `/erp/products/${productId}/colors/${colorId}/images/reorder`,
-        { imageIds: orderedIds },
-      );
-      const refreshed = await apiClient.get<SkuDetailsDTO>(
-        `/erp/products/${productId}/skus/${selectedSku.id}`,
-      );
-      setSelectedSku(refreshed);
-      setReorderedImages(refreshed.images ?? []);
-      setIsReorderDirty(false);
-      skuImagesChangedRef.current = true;
-    } catch (err) {
-      setReorderError(
-        err instanceof Error ? err.message : 'Erro ao reordenar imagens.',
-      );
-    } finally {
-      setIsSavingReorder(false);
-    }
-  };
-
   const toggleImageSelection = (imgId: number) => {
     setSelectedImageIds((prev) => {
       const next = new Set(prev);
@@ -730,6 +700,82 @@ export function ProductDetailsPage() {
       else next.add(imgId);
       return next;
     });
+  };
+
+  // gallery reorder drag handlers
+  const getGalleryImages = (colorName: string) =>
+    galleryReorder[colorName] ?? productImages.find((g) => g.colorName === colorName)?.images ?? [];
+
+  const handleGalleryDragStart = (e: React.DragEvent, colorName: string, idx: number) => {
+    setGalleryDragColor(colorName);
+    setGalleryDragFrom(idx);
+    setGalleryDragOver(idx);
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+    } catch {}
+  };
+
+  const handleGalleryDragOver = (e: React.DragEvent, colorName: string, idx: number) => {
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = 'move'; } catch {}
+    if (galleryDragColor !== colorName || galleryDragFrom === null || idx === galleryDragFrom) return;
+    const imgs = [...getGalleryImages(colorName)];
+    [imgs[galleryDragFrom], imgs[idx]] = [imgs[idx], imgs[galleryDragFrom]];
+    setGalleryReorder((prev) => ({ ...prev, [colorName]: imgs }));
+    setGalleryDirty((prev) => new Set(prev).add(colorName));
+    setGalleryDragFrom(idx);
+    setGalleryDragOver(idx);
+  };
+
+  const handleGalleryDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setGalleryDragFrom(null);
+    setGalleryDragOver(null);
+    setGalleryDragColor(null);
+  };
+
+  const handleGalleryDragEnd = () => {
+    setGalleryDragFrom(null);
+    setGalleryDragOver(null);
+    setGalleryDragColor(null);
+  };
+
+  const handleGalleryUndoReorder = (colorName: string) => {
+    setGalleryReorder((prev) => {
+      const next = { ...prev };
+      delete next[colorName];
+      return next;
+    });
+    setGalleryDirty((prev) => {
+      const next = new Set(prev);
+      next.delete(colorName);
+      return next;
+    });
+    setGalleryReorderError(null);
+  };
+
+  const handleGallerySaveReorder = async (colorName: string) => {
+    if (!productId) return;
+    const colorId = colors.find((c) => c.nome === colorName)?.id;
+    if (!colorId) return;
+    const imgs = getGalleryImages(colorName);
+    setGallerySaving(colorName);
+    setGalleryReorderError(null);
+    try {
+      await apiClient.put(
+        `/erp/products/${productId}/colors/${colorId}/images/reorder`,
+        { orderedImageIds: imgs.map((img) => img.id) },
+      );
+      await loadProductImages();
+      handleGalleryUndoReorder(colorName);
+    } catch (err) {
+      setGalleryReorderError(
+        err instanceof Error ? err.message : 'Erro ao reordenar imagens.',
+      );
+    } finally {
+      setGallerySaving(null);
+    }
   };
 
   const handleDeleteSelectedImages = async () => {
@@ -792,16 +838,34 @@ export function ProductDetailsPage() {
     return colors.filter((c) => namesInProduct.includes(c.nome));
   }, [colors, data]);
 
+  const productSizesForFilters = useMemo(() => {
+    if (!data) return [];
+    const namesInProduct = Array.from(
+      new Set(data.skus.map((s) => s.sizeName)),
+    );
+    return sizes.filter((s) => namesInProduct.includes(s.etiqueta));
+  }, [sizes, data]);
+
+  const existingImagesForSelectedColor = useMemo(() => {
+    if (!selectedColorIdForImages) return 0;
+    const colorName = colors.find((c) => c.id === Number(selectedColorIdForImages))?.nome;
+    if (!colorName) return 0;
+    const group = productImages.find((g) => g.colorName === colorName);
+    return group?.images.length ?? 0;
+  }, [selectedColorIdForImages, colors, productImages]);
+
+  const maxNewFiles = 5 - existingImagesForSelectedColor;
+
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const incoming = Array.from(event.target.files ?? []);
     if (incoming.length === 0) return;
 
-    // start from existing files/previews and append up to 5 total
+    // start from existing files/previews and append up to remaining slots
     const currentFiles = [...imageFiles];
     const currentPreviews = [...imagePreviews];
 
     for (const f of incoming) {
-      if (currentFiles.length >= 5) break;
+      if (currentFiles.length >= maxNewFiles) break;
       currentFiles.push(f);
       const url = URL.createObjectURL(f);
       currentPreviews.push(url);
@@ -1107,7 +1171,11 @@ export function ProductDetailsPage() {
                 {!isLoadingProductImages &&
                   productImages.map((group) => (
                     <div key={group.colorName} className="mb-4">
-                      <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                      <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full border border-edge-strong"
+                          style={{ backgroundColor: group.hexCode }}
+                        />
                         {group.colorName}
                       </h4>
                       <div className="flex flex-wrap gap-2">
@@ -1212,21 +1280,32 @@ export function ProductDetailsPage() {
                     ))}
                   </select>
 
-                  <select
-                    value={skuFilters.colorId ?? ''}
-                    onChange={(e) => {
-                      setSkuFilters((prev) => ({ ...prev, colorId: e.target.value ? Number(e.target.value) : '' }));
-                      setSkuPage(0);
-                    }}
-                    className="h-8 min-w-[140px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
-                  >
-                    <option value="">Todas as cores</option>
-                    {productColorsForImages.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-1.5">
+                    {skuFilters.colorId && (() => {
+                      const sel = productColorsForImages.find((c) => c.id === Number(skuFilters.colorId));
+                      return sel ? (
+                        <span
+                          className="inline-block h-4 w-4 rounded-full border border-edge-strong"
+                          style={{ backgroundColor: sel.hexaCode }}
+                        />
+                      ) : null;
+                    })()}
+                    <select
+                      value={skuFilters.colorId ?? ''}
+                      onChange={(e) => {
+                        setSkuFilters((prev) => ({ ...prev, colorId: e.target.value ? Number(e.target.value) : '' }));
+                        setSkuPage(0);
+                      }}
+                      className="h-8 min-w-[140px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
+                    >
+                      <option value="">Todas as cores</option>
+                      {productColorsForImages.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <select
                     value={skuFilters.sizeId ?? ''}
@@ -1237,7 +1316,7 @@ export function ProductDetailsPage() {
                     className="h-8 min-w-[120px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
                   >
                     <option value="">Todos os tamanhos</option>
-                    {sizes.map((s) => (
+                    {productSizesForFilters.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.etiqueta}
                       </option>
@@ -1280,7 +1359,15 @@ export function ProductDetailsPage() {
                           title={sku.code}
                         >
                           <td className="px-3 py-2 align-middle text-[11px] text-body">
-                            {showColorHeader ? sku.colorName : ''}
+                            {showColorHeader && (
+                              <span className="inline-flex items-center gap-1.5">
+                                <span
+                                  className="inline-block h-3 w-3 rounded-full border border-edge-strong"
+                                  style={{ backgroundColor: colors.find((c) => c.nome === sku.colorName)?.hexaCode }}
+                                />
+                                {sku.colorName}
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-2 align-middle text-[11px] font-medium text-heading">
                             {sku.sizeName}
@@ -1347,9 +1434,8 @@ export function ProductDetailsPage() {
                 <select
                   value={selectedColorIdForImages}
                   onChange={(e) => {
-                    setSelectedColorIdForImages(
-                      e.target.value ? Number(e.target.value) : '',
-                    );
+                    const newColorId = e.target.value ? Number(e.target.value) : '';
+                    setSelectedColorIdForImages(newColorId);
                     setImageFiles([]);
                     setImagePreviews([]);
                     previewsRef.current.forEach((p) => URL.revokeObjectURL(p));
@@ -1357,7 +1443,15 @@ export function ProductDetailsPage() {
                     setPresignedUrls([]);
                     setUploadedImageKeys([]);
                     setImagesError(null);
-                    setImageStartOrder(1);
+                    // auto-set start order based on existing images for this color
+                    if (newColorId) {
+                      const cName = colors.find((c) => c.id === Number(newColorId))?.nome;
+                      const group = productImages.find((g) => g.colorName === cName);
+                      const existingCount = group?.images.length ?? 0;
+                      setImageStartOrder(Math.min(existingCount + 1, 5));
+                    } else {
+                      setImageStartOrder(1);
+                    }
                     if (inputRef.current) {
                       try { inputRef.current.value = ''; } catch {}
                     }
@@ -1375,30 +1469,48 @@ export function ProductDetailsPage() {
 
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-medium text-label">
-                  Arquivos de imagem (até 5)
+                  Arquivos de imagem
+                  {selectedColorIdForImages ? (
+                    <span className="ml-1 font-normal text-faint">
+                      {maxNewFiles <= 0
+                        ? '(limite atingido)'
+                        : existingImagesForSelectedColor === 0
+                          ? '(nenhuma cadastrada)'
+                          : `(${existingImagesForSelectedColor} de 5)`}
+                    </span>
+                  ) : (
+                    <span className="ml-1 font-normal text-faint">(até 5)</span>
+                  )}
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageFileChange}
-                  ref={inputRef}
-                  className="text-[11px] text-body file:mr-2 file:rounded-md file:border-0 file:bg-surface-alt file:px-2.5 file:py-1.5 file:text-[11px] file:font-medium file:text-heading hover:file:bg-edge"
-                />
+                {maxNewFiles <= 0 && selectedColorIdForImages ? (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Esta cor já possui 5 imagens. Exclua alguma antes de enviar novas.
+                  </p>
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageFileChange}
+                    ref={inputRef}
+                    disabled={!selectedColorIdForImages}
+                    className="text-[11px] text-body file:mr-2 file:rounded-md file:border-0 file:bg-surface-alt file:px-2.5 file:py-1.5 file:text-[11px] file:font-medium file:text-heading hover:file:bg-edge disabled:opacity-50"
+                  />
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-medium text-label">
                   Ordem inicial
                 </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={5}
-                  value={imageStartOrder}
-                  onChange={(e) => setImageStartOrder(Math.min(5, Math.max(1, Number(e.target.value))))}
-                  className="h-8 w-20 rounded-lg border border-edge-strong bg-surface-input px-2.5 text-[11px] text-heading outline-none focus:border-brand focus:ring-1 focus:ring-brand/35"
-                />
+                <div className="flex h-8 w-20 items-center rounded-lg border border-edge bg-surface-alt px-2.5 text-[11px] font-semibold text-heading">
+                  {imageStartOrder}
+                </div>
+                <span className="text-[9px] text-faint">
+                  {selectedColorIdForImages && existingImagesForSelectedColor > 0
+                    ? `Será adicionada após as ${existingImagesForSelectedColor} existentes`
+                    : 'Será a primeira imagem desta cor'}
+                </span>
               </div>
 
               {imageFiles.length > 0 && (
@@ -1539,7 +1651,7 @@ export function ProductDetailsPage() {
                       Imagens cadastradas
                     </h3>
                     <p className="text-[10px] text-faint">
-                      Selecione imagens para excluir.
+                      Arraste para reordenar ou selecione para excluir.
                     </p>
                   </div>
                   {selectedImageIds.size > 0 && (
@@ -1556,14 +1668,61 @@ export function ProductDetailsPage() {
                   )}
                 </div>
 
-                {productImages.map((group) => (
+                {galleryReorderError && (
+                  <div className="mb-3 rounded-lg border border-danger-edge bg-danger-soft px-3 py-2 text-[11px] text-danger">
+                    {galleryReorderError}
+                  </div>
+                )}
+
+                {productImages.map((group) => {
+                  const isDirty = galleryDirty.has(group.colorName);
+                  const isSaving = gallerySaving === group.colorName;
+                  const displayImages = getGalleryImages(group.colorName);
+                  return (
                   <div key={group.colorName} className="mb-4">
-                    <h4 className="mb-2 text-[11px] font-medium text-label">
-                      {group.colorName}
-                    </h4>
+                    <div className="mb-2 flex items-center gap-2">
+                      <h4 className="flex items-center gap-1.5 text-[11px] font-medium text-label">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full border border-edge-strong"
+                          style={{ backgroundColor: group.hexCode }}
+                        />
+                        {group.colorName}
+                      </h4>
+                      {isDirty && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => handleGallerySaveReorder(group.colorName)}
+                            className="inline-flex items-center rounded border border-brand/40 bg-brand/10 px-2 py-0.5 text-[9px] font-semibold text-brand hover:bg-brand/20 disabled:opacity-50"
+                          >
+                            {isSaving ? 'Salvando...' : 'Salvar ordem'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => handleGalleryUndoReorder(group.colorName)}
+                            className="inline-flex items-center rounded border border-edge-strong px-2 py-0.5 text-[9px] font-medium text-muted hover:text-heading disabled:opacity-50"
+                          >
+                            Desfazer
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
-                      {group.images.map((img) => (
-                        <div key={img.id} className="relative">
+                      {displayImages.map((img, idx) => {
+                        const isDragged = galleryDragColor === group.colorName && galleryDragFrom === idx;
+                        const isDropTarget = galleryDragColor === group.colorName && galleryDragFrom !== null && galleryDragOver === idx && galleryDragFrom !== idx;
+                        return (
+                        <div
+                          key={img.id}
+                          className={`relative cursor-grab active:cursor-grabbing transition-all duration-150 ${isDragged ? 'opacity-30 scale-95' : ''} ${isDropTarget ? 'ring-2 ring-brand rounded' : ''}`}
+                          draggable
+                          onDragStart={(e) => handleGalleryDragStart(e, group.colorName, idx)}
+                          onDragOver={(e) => handleGalleryDragOver(e, group.colorName, idx)}
+                          onDrop={handleGalleryDrop}
+                          onDragEnd={handleGalleryDragEnd}
+                        >
                           <input
                             type="checkbox"
                             checked={selectedImageIds.has(img.id)}
@@ -1571,19 +1730,21 @@ export function ProductDetailsPage() {
                             className="absolute top-0.5 left-0.5 z-10 h-3.5 w-3.5 cursor-pointer accent-pink-500"
                           />
                           <span className="absolute -top-1.5 -right-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-surface-alt text-[8px] font-bold text-label ring-1 ring-edge-strong">
-                            {img.order}
+                            {idx + 1}
                           </span>
                           <img
                             src={img.url}
-                            alt={`${group.colorName} #${img.order}`}
-                            onClick={() => openLightbox(group.images.map((i) => i.url), group.images.indexOf(img))}
+                            alt={`${group.colorName} #${idx + 1}`}
+                            onClick={() => openLightbox(displayImages.map((i) => i.url), idx)}
                             className={`h-16 w-16 cursor-pointer rounded border object-cover transition hover:opacity-80 ${selectedImageIds.has(img.id) ? 'border-danger-action ring-1 ring-danger-action/50' : 'border-edge-strong'}`}
                           />
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -1725,9 +1886,6 @@ export function ProductDetailsPage() {
                     <thead>
                       <tr className="border-b border-edge bg-surface-alt text-[10px] uppercase tracking-[0.16em] text-muted">
                         <th className="px-2 py-2 text-left font-semibold">
-                          Código SKU
-                        </th>
-                        <th className="px-2 py-2 text-left font-semibold">
                           Cor
                         </th>
                         <th className="px-2 py-2 text-left font-semibold">
@@ -1754,6 +1912,9 @@ export function ProductDetailsPage() {
                         <th className="px-2 py-2 text-left font-semibold">
                           Preço venda (R$)
                         </th>
+                        <th className="px-2 py-2 text-left font-semibold">
+                          Código SKU
+                        </th>
                         <th className="px-2 py-2" />
                       </tr>
                     </thead>
@@ -1763,21 +1924,6 @@ export function ProductDetailsPage() {
                           key={index}
                           className="border-t border-edge hover:bg-surface-alt"
                         >
-                          <td className="px-2 py-1.5 align-middle">
-                            <input
-                              type="text"
-                              value={row.code}
-                              onChange={(e) =>
-                                handleSkuRowChange(
-                                  index,
-                                  'code',
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="CAMISETA-DRYFIT-AZUL-P"
-                              className="h-8 min-w-[190px] rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-1 focus:ring-brand/35"
-                            />
-                          </td>
                           <td className="px-2 py-1.5 align-middle">
                             <select
                               value={row.colorId}
@@ -1921,6 +2067,62 @@ export function ProductDetailsPage() {
                               }
                               className="h-8 w-24 rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none focus:border-brand focus:ring-1 focus:ring-brand/35"
                             />
+                          </td>
+                          <td className="px-2 py-1.5 align-middle">
+                            <div className="flex flex-col gap-1">
+                              <input
+                                type="text"
+                                value={row.code}
+                                onChange={(e) =>
+                                  handleSkuRowChange(
+                                    index,
+                                    'code',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={!row.colorId || !row.sizeId ? 'Aguardando cor e tamanho...' : 'SLUG-COR-TAM'}
+                                disabled={!row.colorId || !row.sizeId}
+                                className={`h-8 min-w-[190px] rounded-lg border bg-surface-input px-2 text-[11px] text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-1 focus:ring-brand/35 disabled:opacity-50 ${
+                                  row.codeManuallyEdited
+                                    ? 'border-amber-400 dark:border-amber-500/70'
+                                    : 'border-edge-strong'
+                                }`}
+                              />
+                              {/* Estado: Esperando */}
+                              {(!row.colorId || !row.sizeId) && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+                                  <span className="text-[9px] text-muted">
+                                    Preencha a cor e o tamanho para gerar o código
+                                  </span>
+                                </div>
+                              )}
+                              {/* Estado: Gerado */}
+                              {row.colorId && row.sizeId && !row.codeManuallyEdited && row.code && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400">
+                                    Gerado a partir do produto, cor e tamanho
+                                  </span>
+                                </div>
+                              )}
+                              {/* Estado: Editado */}
+                              {row.codeManuallyEdited && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400" />
+                                  <span className="text-[9px] text-amber-600 dark:text-amber-400">
+                                    Editado manualmente
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRestoreSkuCode(index)}
+                                    className="text-[9px] font-medium text-brand underline hover:text-brand-hover"
+                                  >
+                                    Usar código gerado
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-2 py-1.5 align-middle text-right">
                             {skuRows.length > 1 && (

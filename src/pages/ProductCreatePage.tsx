@@ -17,7 +17,7 @@ export function ProductCreatePage() {
     const loadCategories = async () => {
       try {
         const response = await apiClient.get<CategoriesDetailsDTO>(
-          '/admin/categories',
+          '/erp/categories',
         );
         setCategories(response.categorias ?? []);
       } catch {

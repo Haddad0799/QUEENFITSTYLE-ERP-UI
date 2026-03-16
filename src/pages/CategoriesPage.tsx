@@ -18,7 +18,7 @@ export function CategoriesPage() {
     setError(null);
     try {
       const response = await apiClient.get<CategoriesDetailsDTO>(
-        '/admin/categories',
+        '/erp/categories',
       );
       setCategories(response.categorias ?? []);
     } catch (err) {
@@ -39,7 +39,7 @@ export function CategoriesPage() {
     if (!newCategoryName.trim()) return;
 
     try {
-      await apiClient.post('/admin/categories', {
+      await apiClient.post('/erp/categories', {
         name: newCategoryName.trim(),
       });
       setNewCategoryName('');
@@ -64,7 +64,7 @@ export function CategoriesPage() {
   const handleSaveEdit = async () => {
     if (!editingCategoryId || !editingCategoryName.trim()) return;
     try {
-      await apiClient.patch(`/admin/categories/${editingCategoryId}/rename`, {
+      await apiClient.patch(`/erp/categories/${editingCategoryId}/rename`, {
         name: editingCategoryName.trim(),
       });
       setEditingCategoryId(null);
@@ -80,9 +80,9 @@ export function CategoriesPage() {
   const toggleCategoryStatus = async (category: Category) => {
     try {
       if (category.active) {
-        await apiClient.patch(`/admin/categories/${category.id}/deactivate`);
+        await apiClient.patch(`/erp/categories/${category.id}/deactivate`);
       } else {
-        await apiClient.patch(`/admin/categories/${category.id}/activate`);
+        await apiClient.patch(`/erp/categories/${category.id}/activate`);
       }
       await loadCategories();
     } catch (err) {
