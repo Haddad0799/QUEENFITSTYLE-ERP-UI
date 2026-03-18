@@ -46,6 +46,29 @@ const SKU_STATUS_BADGE: Record<SkuStatus, string> = {
 };
 
 export function ProductDetailsPage() {
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+    const [publishError, setPublishError] = useState<string | null>(null);
+    // Função para publicar produto
+    const handlePublishProduct = async () => {
+      if (!productId) return;
+      setIsPublishing(true);
+      setPublishSuccess(null);
+      setPublishError(null);
+      try {
+        await apiClient.post(`/erp/products/${productId}/publish`);
+        setPublishSuccess('Produto publicado com sucesso!');
+        // Atualiza dados do produto após publicação
+        const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
+        setData(refreshed);
+      } catch (err) {
+        setPublishError(
+          err instanceof Error ? err.message : 'Erro ao publicar produto.'
+        );
+      } finally {
+        setIsPublishing(false);
+      }
+    };
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [data, setData] = useState<ProductDetailsDTO | null>(null);
@@ -1243,8 +1266,22 @@ export function ProductDetailsPage() {
                   {PRODUCT_STATUS_LABEL[data.status]}
                 </span>
               </p>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover">
-                Publicar produto
+              {publishSuccess && (
+                <div className="mb-2 rounded border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
+                  {publishSuccess}
+                </div>
+              )}
+              {publishError && (
+                <div className="mb-2 rounded border border-danger-edge bg-danger-soft px-3 py-2 text-xs text-danger">
+                  {publishError}
+                </div>
+              )}
+              <button
+                className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover disabled:opacity-60"
+                onClick={handlePublishProduct}
+                disabled={isPublishing}
+              >
+                {isPublishing ? 'Publicando...' : 'Publicar produto'}
               </button>
             </div>
           </section>
