@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 import { DEFAULT_PAGE_SIZE } from '../config';
+import { ProductStatusSection } from '../components/ProductStatusSection';
 import type {
   ProductDetailsDTO,
   ProductStatus,
@@ -31,7 +32,7 @@ const PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
 const SKU_STATUS_LABEL: Record<SkuStatus, string> = {
   INCOMPLETE: 'Incompleto',
   READY: 'Pronto',
-  ACTIVE: 'Ativo',
+  PUBLISHED: 'Publicado',
   BLOCKED: 'Bloqueado',
   DISCONTINUED: 'Descontinuado',
 };
@@ -39,7 +40,7 @@ const SKU_STATUS_LABEL: Record<SkuStatus, string> = {
 const SKU_STATUS_BADGE: Record<SkuStatus, string> = {
   INCOMPLETE: 'bg-amber-50 text-amber-700 border-amber-200 dark:border-amber-400/60 dark:bg-amber-500/10 dark:text-amber-200',
   READY: 'bg-green-50 text-green-700 border-green-200 dark:border-emerald-400/70 dark:bg-emerald-500/15 dark:text-emerald-100',
-  ACTIVE:
+  PUBLISHED:
     'bg-green-100 text-green-800 border-green-300 dark:border-emerald-400/90 dark:bg-emerald-500/20 dark:text-emerald-50',
   BLOCKED: 'bg-red-50 text-red-700 border-red-200 dark:border-rose-400/70 dark:bg-rose-500/10 dark:text-rose-200',
   DISCONTINUED: 'bg-gray-100 text-gray-500 border-gray-200 dark:border-gray-600 dark:bg-gray-900/80 dark:text-gray-400',
@@ -61,6 +62,7 @@ export function ProductDetailsPage() {
         // Atualiza dados do produto após publicação
         const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
         setData(refreshed);
+        if (refreshed.status !== 'PUBLISHED') setPublishSuccess(null);
       } catch (err) {
         setPublishError(
           err instanceof Error ? err.message : 'Erro ao publicar produto.'
@@ -185,7 +187,7 @@ export function ProductDetailsPage() {
 
   const productId = Number(id);
 
-  const loadProductImages = async () => {
+  const loadProductImages = async (): Promise<ProductColorImagesDTO[] | undefined> => {
     if (!productId) return;
     setIsLoadingProductImages(true);
     setPrimaryPickerError(null);
@@ -194,6 +196,7 @@ export function ProductDetailsPage() {
         `/erp/products/${productId}/images`,
       );
       setProductImages(res);
+      return res;
     } catch (err) {
       setPrimaryPickerError(
         err instanceof Error ? err.message : 'Erro ao carregar imagens.',
@@ -220,6 +223,7 @@ export function ProductDetailsPage() {
         `/erp/products/${productId}`,
       );
       setData(refreshed);
+      if (refreshed.status !== 'PUBLISHED') setPublishSuccess(null);
       setShowPrimaryPicker(false);
     } catch (err) {
       setPrimaryPickerError(
@@ -243,6 +247,7 @@ export function ProductDetailsPage() {
         setData(response);
         // initialize skusItems with product's skus
         setSkusItems(response.skus ?? []);
+        if (response.status !== 'PUBLISHED') setPublishSuccess(null);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Erro ao carregar o produto.',
@@ -328,6 +333,7 @@ export function ProductDetailsPage() {
       });
       const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${id}`);
       setData(refreshed);
+      if (refreshed.status !== 'PUBLISHED') setPublishSuccess(null);
       setShowEditProduct(false);
     } catch (err: unknown) {
       setEditProductError(
@@ -490,6 +496,7 @@ export function ProductDetailsPage() {
         `/erp/products/${productId}`,
       );
       setData(refreshed);
+      if (refreshed.status !== 'PUBLISHED') setPublishSuccess(null);
       handleCloseCreateSku();
     } catch (err) {
       setSkuFormError(
@@ -832,11 +839,31 @@ export function ProductDetailsPage() {
         );
       }
       setSelectedImageIds(new Set());
-      loadProductImages();
+      const freshImages = await loadProductImages();
       const refreshed = await apiClient.get<ProductDetailsDTO>(
         `/erp/products/${productId}`,
       );
       setData(refreshed);
+      if (refreshed.status !== 'PUBLISHED') setPublishSuccess(null);
+
+      // Recalculate imageStartOrder for the currently selected color
+      if (selectedColorIdForImages && freshImages) {
+        const cName = colors.find((c) => c.id === Number(selectedColorIdForImages))?.nome;
+        const group = freshImages.find((g) => g.colorName === cName);
+        const remaining = group?.images.length ?? 0;
+        setImageStartOrder(Math.min(remaining + 1, 5));
+      }
+
+      // Clear pending upload files since image context changed
+      setImageFiles([]);
+      setImagePreviews([]);
+      previewsRef.current.forEach((p) => URL.revokeObjectURL(p));
+      previewsRef.current = [];
+      setPresignedUrls([]);
+      setUploadedImageKeys([]);
+      if (inputRef.current) {
+        try { inputRef.current.value = ''; } catch {}
+      }
     } catch (err) {
       setPrimaryPickerError(
         err instanceof Error ? err.message : 'Erro ao excluir imagens.',
@@ -1256,34 +1283,13 @@ export function ProductDetailsPage() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-edge bg-surface p-4 text-sm">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                Status do produto
-              </h2>
-              <p className="mb-3 text-xs text-label">
-                Status atual:{' '}
-                <span className="rounded-full border border-green-200 bg-green-50 text-green-700 dark:border-emerald-400/60 dark:bg-emerald-500/10 dark:text-emerald-100 px-2.5 py-1 text-[11px] font-medium">
-                  {PRODUCT_STATUS_LABEL[data.status]}
-                </span>
-              </p>
-              {publishSuccess && (
-                <div className="mb-2 rounded border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
-                  {publishSuccess}
-                </div>
-              )}
-              {publishError && (
-                <div className="mb-2 rounded border border-danger-edge bg-danger-soft px-3 py-2 text-xs text-danger">
-                  {publishError}
-                </div>
-              )}
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover disabled:opacity-60"
-                onClick={handlePublishProduct}
-                disabled={isPublishing}
-              >
-                {isPublishing ? 'Publicando...' : 'Publicar produto'}
-              </button>
-            </div>
+            <ProductStatusSection
+              status={data.status}
+              onPublish={handlePublishProduct}
+              publishSuccess={!!publishSuccess}
+              isPublishing={isPublishing}
+              onDismissSuccess={() => setPublishSuccess(null)}
+            />
           </section>
 
           <section className="rounded-xl border border-edge bg-surface p-4 text-xs">
@@ -1309,7 +1315,7 @@ export function ProductDetailsPage() {
                   >
                     <option value="">Todos os status</option>
                     {(
-                      ['INCOMPLETE', 'READY', 'ACTIVE', 'BLOCKED', 'DISCONTINUED'] as SkuStatus[]
+                      ['INCOMPLETE', 'READY', 'PUBLISHED', 'BLOCKED', 'DISCONTINUED'] as SkuStatus[]
                     ).map((s) => (
                       <option key={s} value={s}>
                         {SKU_STATUS_LABEL[s]}

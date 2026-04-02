@@ -25,7 +25,7 @@ export type PageResponseProductSummaryDTO = {
 export type SkuStatus =
   | 'INCOMPLETE'
   | 'READY'
-  | 'ACTIVE'
+  | 'PUBLISHED'
   | 'BLOCKED'
   | 'DISCONTINUED';
 

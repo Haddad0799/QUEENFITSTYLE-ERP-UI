@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ProductStatusSectionProps {
   status: 'DRAFT' | 'READY_FOR_SALE' | 'PUBLISHED' | 'INACTIVE' | 'ARCHIVED';
   onPublish: () => void;
   publishSuccess: boolean;
+  isPublishing: boolean;
+  onDismissSuccess?: () => void;
 }
 
 const STATUS_LABELS: Record<ProductStatusSectionProps['status'], string> = {
@@ -34,10 +36,19 @@ export const ProductStatusSection: React.FC<ProductStatusSectionProps> = ({
   status,
   onPublish,
   publishSuccess,
+  isPublishing,
+  onDismissSuccess,
 }) => {
   const isDraftOrReady = status === 'DRAFT' || status === 'READY_FOR_SALE';
   const isPublished = status === 'PUBLISHED';
-  const disabled = !isDraftOrReady;
+  const disabled = !isDraftOrReady || isPublishing;
+
+  useEffect(() => {
+    if (publishSuccess && onDismissSuccess) {
+      const timer = setTimeout(() => onDismissSuccess(), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [publishSuccess, onDismissSuccess]);
 
   return (
     <div className="rounded-xl border border-edge bg-surface p-4 text-sm">
@@ -48,19 +59,21 @@ export const ProductStatusSection: React.FC<ProductStatusSectionProps> = ({
         Status atual:{' '}
         <span className={STATUS_BADGE_CLASSES[status]}>{STATUS_LABELS[status]}</span>
       </p>
-      {isDraftOrReady && publishSuccess && (
+      {publishSuccess && (
         <div className="mb-2 rounded border border-green-300 bg-green-50 px-3 py-2 text-xs text-green-700">
           Produto publicado com sucesso!
         </div>
       )}
-      <button
-        className={`inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover disabled:opacity-60 ${disabled ? 'pointer-events-none' : ''}`}
-        onClick={disabled ? undefined : onPublish}
-        disabled={disabled}
-        aria-disabled={disabled}
-      >
-        Publicar produto
-      </button>
+      {isDraftOrReady && (
+        <button
+          className={`inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover disabled:opacity-60 ${disabled ? 'pointer-events-none' : ''}`}
+          onClick={disabled ? undefined : onPublish}
+          disabled={disabled}
+          aria-disabled={disabled}
+        >
+          {isPublishing ? 'Publicando...' : 'Publicar produto'}
+        </button>
+      )}
       {isPublished && (
         <div className={INFO_BOX_CLASSES}>
           <span role="img" aria-label="info" className="text-base">ℹ️</span>

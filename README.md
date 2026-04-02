@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# QueenFitStyle ERP — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface administrativa (backoffice) do ERP da **QueenFitStyle**, marca de roupas de academia feminina. Permite o gerenciamento completo do catálogo de produtos, SKUs, categorias, imagens, estoque e precificação.
 
-Currently, two official plugins are available:
+## Por que React (SPA)?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Por se tratar de um **sistema interno** (backoffice), não há necessidade de SEO ou renderização server-side. Um SPA com React oferece:
 
-## React Compiler
+- Navegação rápida sem recarregar a página
+- Melhor experiência para operações de CRUD intensivas
+- Simplicidade na arquitetura — sem camada de servidor Node intermediária
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+| Camada        | Tecnologia                        |
+|---------------|-----------------------------------|
+| Framework     | React 19 + TypeScript 5.9         |
+| Build Tool    | Vite 7                            |
+| Roteamento    | React Router DOM 7                |
+| Estilização   | Tailwind CSS 4                    |
+| Linting       | ESLint 9 + typescript-eslint      |
+| HTTP Client   | Fetch API nativa (wrapper próprio)|
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Estrutura do Projeto
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── components/        # Componentes reutilizáveis (ex: ProductStatusSection)
+├── layout/            # Shell da aplicação (Sidebar, Topbar, PageShell)
+├── lib/               # Utilitários (api-client com wrapper fetch genérico)
+├── pages/             # Páginas da aplicação
+│   ├── ProductsPage       # Listagem paginada de produtos
+│   ├── ProductCreatePage  # Cadastro de novo produto
+│   ├── ProductDetailsPage # Detalhes + SKUs de um produto
+│   └── CategoriesPage     # CRUD de categorias
+├── types/             # Tipagens TypeScript (products, categories, catalog-aux)
+└── config.ts          # Constantes (API base URL, page size)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Funcionalidades
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **Produtos** — listagem paginada com filtros, criação, edição, visualização de detalhes e status (`DRAFT` → `READY_FOR_SALE` → `PUBLISHED` → `INACTIVE` → `ARCHIVED`)
+- **SKUs** — gerenciamento de variações (cor + tamanho), código SKU, dimensões, preço de custo/venda e estoque
+- **Categorias** — criação, renomeação, ativação/desativação
+- **Imagens** — upload via URLs pré-assinadas (MinIO/S3), reordenação e definição de imagem principal
+- **Cores & Tamanhos** — atributos fixos consumidos dos endpoints administrativos
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Integração com o Backend
+
+O frontend se comunica com uma API REST Java (Spring Boot) via proxy do Vite em desenvolvimento:
+
 ```
+/erp/*  →  http://localhost:8080
+/admin/* →  http://localhost:8080
+```
+
+### Arquitetura do Backend
+
+O backend segue **Clean Architecture** com módulos Maven independentes:
+
+| Módulo      | Responsabilidade                                  |
+|-------------|---------------------------------------------------|
+| `app`       | Bootstrap da aplicação + exception handler global  |
+| `attribute` | Categorias, cores e tamanhos (domínio + CRUD)      |
+| `product`   | Produtos, SKUs, imagens e publicação no catálogo   |
+| `catalog`   | View materializada para o catálogo público (e-commerce) |
+| `inventory` | Estoque (movimentações, reservas, saldo)           |
+| `pricing`   | Preço de custo e venda por SKU                     |
+| `storage`   | Upload/download de imagens (MinIO via presigned URLs) |
+| `shared`    | Configuração JDBI, exceptions base, migrations Flyway |
+
+## Pré-requisitos
+
+- **Node.js** ≥ 18
+- **Backend** rodando em `localhost:8080` (ver repositório do backend)
+
+## Instalação e Execução
+
+```bash
+# Instalar dependências
+npm install
+
+# Iniciar servidor de desenvolvimento (porta 5174)
+npm run dev
+
+# Build de produção
+npm run build
+
+# Lint
+npm run lint
+```
+
+## Scripts Disponíveis
+
+| Comando         | Descrição                          |
+|-----------------|------------------------------------|
+| `npm run dev`   | Servidor dev com HMR (porta 5174)  |
+| `npm run build` | Type-check + build para produção   |
+| `npm run lint`  | Análise estática com ESLint        |
+| `npm run preview` | Preview do build de produção     |
