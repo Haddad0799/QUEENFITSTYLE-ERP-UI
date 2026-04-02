@@ -56,18 +56,9 @@ O frontend se comunica com uma API REST Java (Spring Boot) via proxy do Vite em 
 
 ### Arquitetura do Backend
 
-O backend segue **Clean Architecture** com módulos Maven independentes:
+O backend segue **Clean Architecture** com módulos Maven independentes (attribute, product, catalog, inventory, pricing, storage, shared).
 
-| Módulo      | Responsabilidade                                  |
-|-------------|---------------------------------------------------|
-| `app`       | Bootstrap da aplicação + exception handler global  |
-| `attribute` | Categorias, cores e tamanhos (domínio + CRUD)      |
-| `product`   | Produtos, SKUs, imagens e publicação no catálogo   |
-| `catalog`   | View materializada para o catálogo público (e-commerce) |
-| `inventory` | Estoque (movimentações, reservas, saldo)           |
-| `pricing`   | Preço de custo e venda por SKU                     |
-| `storage`   | Upload/download de imagens (MinIO via presigned URLs) |
-| `shared`    | Configuração JDBI, exceptions base, migrations Flyway |
+Para detalhes sobre a arquitetura, módulos e endpoints, consulte o [repositório do backend](https://github.com/Haddad0799/QUEENFITSTYLE-ERP-STORE-BACKEND).
 
 ## Pré-requisitos
 
