@@ -1,91 +1,156 @@
-# QueenFitStyle ERP — Frontend
+# Queenfitstyle ERP — Frontend
 
-Interface administrativa (backoffice) do ERP da **QueenFitStyle**, marca de roupas de academia feminina. Permite o gerenciamento completo do catálogo de produtos, SKUs, categorias, imagens, estoque e precificação.
+Interface administrativa do ecossistema Queenfitstyle, responsável pela operação interna do e-commerce.
 
-## Por que React (SPA)?
+Permite gerenciar catálogo, produtos, SKUs, categorias, imagens, estoque e preços de forma centralizada e consistente.
 
-Por se tratar de um **sistema interno** (backoffice), não há necessidade de SEO ou renderização server-side. Um SPA com React oferece:
+---
 
-- Navegação rápida sem recarregar a página
+## Problema
+
+A operação de e-commerce envolve tarefas críticas que, quando mal estruturadas, geram:
+
+- Produtos publicados com dados incompletos
+- Erros manuais no cadastro de SKUs
+- Dificuldade em gerenciar variações (cor, tamanho, preço)
+- Baixa produtividade em operações repetitivas (CRUD)
+- Falta de controle sobre o ciclo de vida dos produtos
+
+---
+
+## Solução
+
+O painel administrativo foi desenvolvido para:
+
+- Centralizar toda a gestão de catálogo em uma única interface
+- Garantir consistência através de regras de negócio integradas ao backend
+- Oferecer uma experiência rápida e fluida para operações intensivas
+- Facilitar o cadastro e manutenção de produtos em escala
+
+---
+
+## Resultado
+
+- Redução de erros operacionais no cadastro de produtos
+- Maior controle sobre publicação e status de itens
+- Aumento da produtividade na operação do catálogo
+- Interface responsiva e otimizada para uso contínuo
+
+---
+
+## Arquitetura
+
+Aplicação Single Page Application (SPA) construída com React.
+
+Motivação da escolha:
+
+- Sistema interno (sem necessidade de SEO)
+- Navegação rápida sem recarregamento
 - Melhor experiência para operações de CRUD intensivas
-- Simplicidade na arquitetura — sem camada de servidor Node intermediária
+- Menor complexidade de infraestrutura
 
-## Tech Stack
+---
 
-| Camada        | Tecnologia                        |
-|---------------|-----------------------------------|
-| Framework     | React 19 + TypeScript 5.9         |
-| Build Tool    | Vite 7                            |
-| Roteamento    | React Router DOM 7                |
-| Estilização   | Tailwind CSS 4                    |
-| Linting       | ESLint 9 + typescript-eslint      |
-| HTTP Client   | Fetch API nativa (wrapper próprio)|
+## Integração com Backend
 
-## Estrutura do Projeto
+O frontend consome a API REST do backend (Spring Boot), responsável por:
 
-```
-src/
-├── components/        # Componentes reutilizáveis (ex: ProductStatusSection)
-├── layout/            # Shell da aplicação (Sidebar, Topbar, PageShell)
-├── lib/               # Utilitários (api-client com wrapper fetch genérico)
-├── pages/             # Páginas da aplicação
-│   ├── ProductsPage       # Listagem paginada de produtos
-│   ├── ProductCreatePage  # Cadastro de novo produto
-│   ├── ProductDetailsPage # Detalhes + SKUs de um produto
-│   └── CategoriesPage     # CRUD de categorias
-├── types/             # Tipagens TypeScript (products, categories, catalog-aux)
-└── config.ts          # Constantes (API base URL, page size)
-```
+- Regras de negócio e validações
+- Persistência de dados
+- Orquestração entre módulos (produto, estoque, preço, catálogo)
+
+Durante o desenvolvimento:
+
+/erp/*  →  http://localhost:8080  
+/admin/* →  http://localhost:8080  
+
+---
 
 ## Funcionalidades
 
-- **Produtos** — listagem paginada com filtros, criação, edição, visualização de detalhes e status (`DRAFT` → `READY_FOR_SALE` → `PUBLISHED` → `INACTIVE` → `ARCHIVED`)
-- **SKUs** — gerenciamento de variações (cor + tamanho), código SKU, dimensões, preço de custo/venda e estoque
-- **Categorias** — criação, renomeação, ativação/desativação
-- **Imagens** — upload via URLs pré-assinadas (MinIO/S3), reordenação e definição de imagem principal
-- **Cores & Tamanhos** — atributos fixos consumidos dos endpoints administrativos
+### Produtos
 
-## Integração com o Backend
+- Listagem paginada com filtros
+- Criação, edição e visualização
+- Controle de status (DRAFT → READY_FOR_SALE → PUBLISHED → INACTIVE → ARCHIVED)
 
-O frontend se comunica com uma API REST Java (Spring Boot) via proxy do Vite em desenvolvimento:
+### SKUs
 
-```
-/erp/*  →  http://localhost:8080
-/admin/* →  http://localhost:8080
-```
+- Gestão de variações (cor e tamanho)
+- Definição de código SKU
+- Controle de dimensões, preço e estoque
 
-### Arquitetura do Backend
+### Categorias
 
-O backend segue **Clean Architecture** com módulos Maven independentes (attribute, product, catalog, inventory, pricing, storage, shared).
+- Criação e edição
+- Ativação e desativação
 
-Para detalhes sobre a arquitetura, módulos e endpoints, consulte o [repositório do backend](https://github.com/Haddad0799/QUEENFITSTYLE-ERP-STORE-BACKEND).
+### Imagens
 
-## Pré-requisitos
+- Upload via URLs pré-assinadas (MinIO/S3)
+- Definição de imagem principal
+- Ordenação de imagens
 
-- **Node.js** ≥ 18
-- **Backend** rodando em `localhost:8080` (ver repositório do backend)
+### Atributos
 
-## Instalação e Execução
+- Consumo de cores e tamanhos definidos no backend
 
-```bash
-# Instalar dependências
+---
+
+## Estrutura do Projeto
+
+src/
+├── components/
+├── layout/
+├── lib/
+├── pages/
+│   ├── ProductsPage
+│   ├── ProductCreatePage
+│   ├── ProductDetailsPage
+│   └── CategoriesPage
+├── types/
+└── config.ts
+
+---
+
+## Tecnologias
+
+- React 19
+- TypeScript
+- Vite
+- React Router DOM
+- Tailwind CSS
+- ESLint
+
+---
+
+## Execução
+
+Pré-requisitos:
+
+- Node.js 18+
+- Backend rodando em localhost:8080
+
+Instalar dependências:
+
 npm install
 
-# Iniciar servidor de desenvolvimento (porta 5174)
+Rodar em desenvolvimento:
+
 npm run dev
 
-# Build de produção
+Build de produção:
+
 npm run build
 
-# Lint
-npm run lint
-```
+---
 
-## Scripts Disponíveis
+## Integração com o Ecossistema
 
-| Comando         | Descrição                          |
-|-----------------|------------------------------------|
-| `npm run dev`   | Servidor dev com HMR (porta 5174)  |
-| `npm run build` | Type-check + build para produção   |
-| `npm run lint`  | Análise estática com ESLint        |
-| `npm run preview` | Preview do build de produção     |
+Este projeto faz parte de um sistema completo de e-commerce:
+
+- Backend ERP: regras de negócio e persistência
+- Painel administrativo: operação interna (este projeto)
+- Loja virtual: vitrine pública com SEO e performance
+
+Para mais detalhes, consulte o repositório do backend.
