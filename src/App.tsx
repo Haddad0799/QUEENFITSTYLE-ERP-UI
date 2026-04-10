@@ -5,6 +5,7 @@ import { ProductsPage } from './pages/ProductsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
 import { ProductCreatePage } from './pages/ProductCreatePage';
+import { ProductImportPage } from './pages/ProductImportPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<Navigate to="/products" replace />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/new" element={<ProductCreatePage />} />
+          <Route path="/products/import" element={<ProductImportPage />} />
           <Route path="/products/:id" element={<ProductDetailsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route

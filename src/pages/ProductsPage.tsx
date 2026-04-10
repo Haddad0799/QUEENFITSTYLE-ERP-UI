@@ -121,13 +121,22 @@ export function ProductsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => navigate('/products/new')}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover"
-        >
-          <span className="text-base leading-none">＋</span>
-          Novo produto
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/products/import')}
+            className="inline-flex items-center gap-2 rounded-lg border border-edge bg-surface-alt px-3.5 py-2 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface"
+          >
+            <span className="text-base leading-none">📥</span>
+            Importar
+          </button>
+          <button
+            onClick={() => navigate('/products/new')}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover"
+          >
+            <span className="text-base leading-none">＋</span>
+            Novo produto
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-edge bg-surface p-3 text-xs">

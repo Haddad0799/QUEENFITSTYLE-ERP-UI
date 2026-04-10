@@ -21,7 +21,8 @@ import type {
 } from '../types/catalog-aux';
 import type { Category, CategoriesDetailsDTO } from '../types/categories';
 
-const PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
+// @ts-expect-error reserved for future use
+const _PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
   DRAFT: 'Rascunho',
   READY_FOR_SALE: 'Pronto para venda',
   PUBLISHED: 'Publicado',
@@ -49,7 +50,7 @@ const SKU_STATUS_BADGE: Record<SkuStatus, string> = {
 export function ProductDetailsPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
-    const [publishError, setPublishError] = useState<string | null>(null);
+    const [_publishError, setPublishError] = useState<string | null>(null);
     // Função para publicar produto
     const handlePublishProduct = async () => {
       if (!productId) return;

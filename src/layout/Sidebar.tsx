@@ -33,6 +33,7 @@ export function Sidebar() {
 
         <NavLink
           to="/products"
+          end
           className={({ isActive }) =>
             `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
           }
@@ -53,6 +54,18 @@ export function Sidebar() {
             🏷️
           </span>
           Categorias
+        </NavLink>
+
+        <NavLink
+          to="/products/import"
+          className={({ isActive }) =>
+            `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
+          }
+        >
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+            📥
+          </span>
+          Importação
         </NavLink>
       </nav>
 

@@ -133,5 +133,18 @@ export const apiClient = {
     });
     return handleResponse<T>(res);
   },
+
+  postMultipart: async <T>(
+    path: string,
+    body: FormData,
+    params: Record<string, unknown> = {},
+  ) => {
+    const query = buildQuery(params);
+    const res = await fetch(`${API_BASE_URL}${path}${query}`, {
+      method: 'POST',
+      body,
+    });
+    return handleResponse<T>(res);
+  },
 };
 
