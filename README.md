@@ -1,6 +1,6 @@
-# Queenfitstyle ERP — Frontend
+# QueenFitStyle ERP — Frontend
 
-Interface administrativa do ecossistema Queenfitstyle, responsável pela operação interna do e-commerce.
+Interface administrativa do ecossistema QueenFitStyle, responsável pela operação interna do e-commerce.
 
 Permite gerenciar catálogo, produtos, SKUs, categorias, imagens, estoque e preços de forma centralizada e consistente.
 
@@ -10,11 +10,11 @@ Permite gerenciar catálogo, produtos, SKUs, categorias, imagens, estoque e pre�
 
 A operação de e-commerce envolve tarefas críticas que, quando mal estruturadas, geram:
 
-- Produtos publicados com dados incompletos
-- Erros manuais no cadastro de SKUs
-- Dificuldade em gerenciar variações (cor, tamanho, preço)
-- Baixa produtividade em operações repetitivas (CRUD)
-- Falta de controle sobre o ciclo de vida dos produtos
+- produtos publicados com dados incompletos  
+- erros manuais no cadastro de SKUs  
+- dificuldade em gerenciar variações (cor, tamanho, preço)  
+- baixa produtividade em operações repetitivas (CRUD)  
+- falta de controle sobre o ciclo de vida dos produtos  
 
 ---
 
@@ -22,19 +22,19 @@ A operação de e-commerce envolve tarefas críticas que, quando mal estruturada
 
 O painel administrativo foi desenvolvido para:
 
-- Centralizar toda a gestão de catálogo em uma única interface
-- Garantir consistência através de regras de negócio integradas ao backend
-- Oferecer uma experiência rápida e fluida para operações intensivas
-- Facilitar o cadastro e manutenção de produtos em escala
+- centralizar a gestão de catálogo em uma única interface  
+- garantir consistência através de regras de negócio integradas ao backend  
+- oferecer uma experiência rápida para operações intensivas  
+- facilitar o cadastro e manutenção de produtos em escala  
 
 ---
 
 ## Resultado
 
-- Redução de erros operacionais no cadastro de produtos
-- Maior controle sobre publicação e status de itens
-- Aumento da produtividade na operação do catálogo
-- Interface responsiva e otimizada para uso contínuo
+- redução de erros operacionais no cadastro de produtos  
+- maior controle sobre publicação e status de itens  
+- aumento da produtividade na operação do catálogo  
+- interface responsiva e otimizada para uso contínuo  
 
 ---
 
@@ -44,113 +44,89 @@ Aplicação Single Page Application (SPA) construída com React.
 
 Motivação da escolha:
 
-- Sistema interno (sem necessidade de SEO)
-- Navegação rápida sem recarregamento
-- Melhor experiência para operações de CRUD intensivas
-- Menor complexidade de infraestrutura
+- sistema interno (sem necessidade de SEO)  
+- navegação rápida sem recarregamento  
+- melhor experiência para operações de CRUD intensivas  
+- menor complexidade de infraestrutura  
 
 ---
 
-## Integração com Backend
+## Integração com o backend
 
-O frontend consome a API REST do backend (Spring Boot), responsável por:
+O frontend consome a API REST desenvolvida em Spring Boot, responsável por:
 
-- Regras de negócio e validações
-- Persistência de dados
-- Orquestração entre módulos (produto, estoque, preço, catálogo)
+- regras de negócio e validações  
+- persistência de dados  
+- orquestração entre módulos (produto, estoque, preço, catálogo)  
 
 Durante o desenvolvimento:
 
-/erp/*  →  http://localhost:8080  
-/admin/* →  http://localhost:8080  
+- `/erp/*` → http://localhost:8080  
+- `/admin/*` → http://localhost:8080  
 
 ---
 
 ## Funcionalidades
 
 ### Produtos
-
-- Listagem paginada com filtros
-- Criação, edição e visualização
-- Controle de status (DRAFT → READY_FOR_SALE → PUBLISHED → INACTIVE → ARCHIVED)
+- listagem paginada com filtros  
+- criação, edição e visualização  
+- controle de status (DRAFT → READY_FOR_SALE → PUBLISHED → INACTIVE → ARCHIVED)  
 
 ### SKUs
-
-- Gestão de variações (cor e tamanho)
-- Definição de código SKU
-- Controle de dimensões, preço e estoque
+- gestão de variações (cor e tamanho)  
+- definição de código SKU  
+- controle de dimensões, preço e estoque  
 
 ### Categorias
-
-- Criação e edição
-- Ativação e desativação
+- criação e edição  
+- ativação e desativação  
 
 ### Imagens
-
-- Upload via URLs pré-assinadas (MinIO/S3)
-- Definição de imagem principal
-- Ordenação de imagens
+- upload via URLs pré-assinadas (MinIO/S3)  
+- definição de imagem principal  
+- ordenação de imagens  
 
 ### Atributos
-
-- Consumo de cores e tamanhos definidos no backend
-
----
-
-## Estrutura do Projeto
-
-src/
-├── components/
-├── layout/
-├── lib/
-├── pages/
-│   ├── ProductsPage
-│   ├── ProductCreatePage
-│   ├── ProductDetailsPage
-│   └── CategoriesPage
-├── types/
-└── config.ts
+- consumo de cores e tamanhos definidos no backend  
 
 ---
 
 ## Tecnologias
 
-- React 19
-- TypeScript
-- Vite
-- React Router DOM
-- Tailwind CSS
-- ESLint
+- React  
+- TypeScript  
+- Vite  
+- React Router DOM  
+- Tailwind CSS  
+- ESLint  
 
 ---
 
-## Execução
+## Como rodar o projeto
 
-Pré-requisitos:
+### Pré-requisitos
 
-- Node.js 18+
-- Backend rodando em localhost:8080
+- Node.js 18+  
+- Backend rodando em http://localhost:8080  
 
-Instalar dependências:
+### Instalar dependências
 
+```bash
 npm install
-
-Rodar em desenvolvimento:
-
+Rodar em desenvolvimento
 npm run dev
-
-Build de produção:
-
+Build de produção
 npm run build
-
+Integração com o ecossistema
+````
 ---
+# Este projeto faz parte de um sistema completo de e-commerce:
 
-## Integração com o Ecossistema
+Backend ERP: regras de negócio e persistência
+https://github.com/Haddad0799/QUEENFITSTYLE-ERP-STORE-BACKEND
+Loja virtual (Next.js): vitrine pública
+https://github.com/Haddad0799/QUEENFITSTYLE-STORE-UI
 
-Este projeto faz parte de um sistema completo de e-commerce:
 
-- Backend ERP: regras de negócio e persistência
-- Painel administrativo: operação interna (este projeto)
-- Loja virtual: vitrine pública com SEO e performance
 
-Para mais detalhes, consulte o repositório do backend.
