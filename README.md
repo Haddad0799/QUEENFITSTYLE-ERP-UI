@@ -123,9 +123,9 @@ Integração com o ecossistema
 ---
 # Este projeto faz parte de um sistema completo de e-commerce:
 
-Backend ERP: regras de negócio e persistência
+- Backend ERP: regras de negócio e persistência
 https://github.com/Haddad0799/QUEENFITSTYLE-ERP-STORE-BACKEND
-Loja virtual (Next.js): vitrine pública
+- Loja virtual (Next.js): vitrine pública
 https://github.com/Haddad0799/QUEENFITSTYLE-STORE-UI
 
 
