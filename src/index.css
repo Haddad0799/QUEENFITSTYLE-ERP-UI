@@ -124,18 +124,32 @@ body,
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
   background: var(--base);
   color: var(--body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
 [role="button"],
 summary {
   cursor: pointer;
+}
+
+/* Better touch targets on mobile */
+@media (max-width: 640px) {
+  select, input[type="text"], input[type="number"], input[type="email"], textarea {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
 }
 
 #root {

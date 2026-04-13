@@ -68,6 +68,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export const apiClient = {
   get: async <T>(path: string, params: Record<string, unknown> = {}) => {
     const query = buildQuery(params);
+    // log the request for debugging
+    try {
+      console.debug('[apiClient] GET', `${API_BASE_URL}${path}${query}`);
+    } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'GET',
       cache: 'no-store',
@@ -81,6 +85,9 @@ export const apiClient = {
     params: Record<string, unknown> = {},
   ) => {
     const query = buildQuery(params);
+    try {
+      console.debug('[apiClient] POST', `${API_BASE_URL}${path}${query}`, body);
+    } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'POST',
       headers: {
@@ -97,6 +104,9 @@ export const apiClient = {
     params: Record<string, unknown> = {},
   ) => {
     const query = buildQuery(params);
+    try {
+      console.debug('[apiClient] PATCH', `${API_BASE_URL}${path}${query}`, body);
+    } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'PATCH',
       headers: {
@@ -113,6 +123,9 @@ export const apiClient = {
     params: Record<string, unknown> = {},
   ) => {
     const query = buildQuery(params);
+    try {
+      console.debug('[apiClient] PUT', `${API_BASE_URL}${path}${query}`, body);
+    } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'PUT',
       headers: {

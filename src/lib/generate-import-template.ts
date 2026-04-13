@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 
 const HEADERS = [
   'Nome do Produto',
-  'Descrição',
+  'Slug',
   'Categoria',
   'Cor',
   'Tamanho',
@@ -16,7 +16,7 @@ const HEADERS = [
   'Quantidade em Estoque',
 ];
 
-const COL_WIDTHS = [28, 28, 14, 12, 10, 22, 14, 14, 18, 12, 16, 16, 22];
+const COL_WIDTHS = [28, 22, 14, 12, 10, 22, 14, 14, 18, 12, 16, 16, 22];
 
 export function downloadImportTemplate() {
   const wb = XLSX.utils.book_new();

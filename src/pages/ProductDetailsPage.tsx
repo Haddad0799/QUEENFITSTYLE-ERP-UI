@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CategoryLeafPicker } from '../components/CategoryLeafPicker';
 import { apiClient } from '../lib/api-client';
+import { extractCategories, getLeafCategoryOptions } from '../lib/category-utils';
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { ProductStatusSection } from '../components/ProductStatusSection';
 import type {
@@ -19,7 +21,7 @@ import type {
   UpdateSkuDimensionsDTO,
   ProductColorImagesDTO,
 } from '../types/catalog-aux';
-import type { Category, CategoriesDetailsDTO } from '../types/categories';
+import type { Category } from '../types/categories';
 
 // @ts-expect-error reserved for future use
 const _PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
@@ -186,7 +188,30 @@ export function ProductDetailsPage() {
   const [isSavingDimensions, setIsSavingDimensions] = useState(false);
   const [dimensionsError, setDimensionsError] = useState<string | null>(null);
 
+  // delete sku (single from detail panel)
+  const [showDeleteSkuConfirm, setShowDeleteSkuConfirm] = useState(false);
+  const [isDeletingSku, setIsDeletingSku] = useState(false);
+  const [deleteSkuError, setDeleteSkuError] = useState<string | null>(null);
+
+  // batch sku selection & deletion
+  const [selectedSkuIds, setSelectedSkuIds] = useState<Set<number>>(new Set());
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [batchDeleteError, setBatchDeleteError] = useState<string | null>(null);
+
+  // delete product
+  const [showDeleteProductConfirm, setShowDeleteProductConfirm] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const [deleteProductError, setDeleteProductError] = useState<string | null>(null);
+
   const productId = Number(id);
+  const isLeafCategorySelected = useMemo(
+    () =>
+      getLeafCategoryOptions(categories).some(
+        (category) => category.id === editForm.categoryId,
+      ),
+    [categories, editForm.categoryId],
+  );
 
   const loadProductImages = async (): Promise<ProductColorImagesDTO[] | undefined> => {
     if (!productId) return;
@@ -291,6 +316,7 @@ export function ProductDetailsPage() {
 
   useEffect(() => {
     // refetch skus when filters change
+    setSelectedSkuIds(new Set());
     fetchSkus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skuFilters, data, skuPage]);
@@ -302,11 +328,11 @@ export function ProductDetailsPage() {
         const [colorsRes, sizesRes, categoriesRes] = await Promise.all([
           apiClient.get<ColorsAdminDetailsDTO>('/erp/colors'),
           apiClient.get<SizesAdminDetailsDTO>('/erp/sizes'),
-          apiClient.get<CategoriesDetailsDTO>('/erp/categories'),
+          apiClient.get<unknown>('/erp/categories'),
         ]);
         setColors(colorsRes.coresDispoiveis ?? []);
         setSizes(sizesRes.tamanhosDisponiveis ?? []);
-        setCategories(categoriesRes.categorias ?? []);
+        setCategories(extractCategories(categoriesRes));
       } catch {
         // se falhar, usuário ainda consegue ver o produto
       }
@@ -535,6 +561,88 @@ export function ProductDetailsPage() {
     }
   };
 
+  const handleDeleteSku = async () => {
+    if (!productId || !selectedSkuId) return;
+    setIsDeletingSku(true);
+    setDeleteSkuError(null);
+    try {
+      await apiClient.delete(`/erp/products/${productId}/skus/${selectedSkuId}`);
+      setShowDeleteSkuConfirm(false);
+      setSelectedSkuIds((prev) => {
+        const next = new Set(prev);
+        next.delete(selectedSkuId);
+        return next;
+      });
+      handleCloseSkuDetails();
+      // refresh product data
+      const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
+      setData(refreshed);
+      fetchSkus();
+    } catch (err) {
+      setDeleteSkuError(
+        err instanceof Error ? err.message : 'Erro ao excluir SKU.',
+      );
+    } finally {
+      setIsDeletingSku(false);
+    }
+  };
+
+  // batch selection helpers
+  const deletableSelectedSkus = useMemo(() => {
+    return skusItems.filter(
+      (s) => selectedSkuIds.has(s.id) && s.status !== 'PUBLISHED',
+    );
+  }, [skusItems, selectedSkuIds]);
+
+  const nonDeletableCount = useMemo(() => {
+    return skusItems.filter(
+      (s) => selectedSkuIds.has(s.id) && s.status === 'PUBLISHED',
+    ).length;
+  }, [skusItems, selectedSkuIds]);
+
+  const toggleSkuSelection = (skuId: number, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    setSelectedSkuIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(skuId)) next.delete(skuId);
+      else next.add(skuId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllSkus = () => {
+    const selectableIds = skusItems
+      .filter((s) => s.status !== 'PUBLISHED')
+      .map((s) => s.id);
+    const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedSkuIds.has(id));
+    if (allSelected) {
+      setSelectedSkuIds(new Set());
+    } else {
+      setSelectedSkuIds(new Set(selectableIds));
+    }
+  };
+
+  const handleBatchDeleteSkus = async () => {
+    if (!productId || deletableSelectedSkus.length === 0) return;
+    setIsDeletingBatch(true);
+    setBatchDeleteError(null);
+    try {
+      const skuIds = deletableSelectedSkus.map((s) => s.id);
+      await apiClient.post(`/erp/products/${productId}/skus/batch-delete`, { skuIds });
+      setSelectedSkuIds(new Set());
+      setShowBatchDeleteConfirm(false);
+      const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
+      setData(refreshed);
+      fetchSkus();
+    } catch (err) {
+      setBatchDeleteError(
+        err instanceof Error ? err.message : 'Erro ao excluir SKUs.',
+      );
+    } finally {
+      setIsDeletingBatch(false);
+    }
+  };
+
   const handleCloseSkuDetails = () => {
     const shouldRefetch = skuImagesChangedRef.current;
     setSelectedSkuId(null);
@@ -545,6 +653,8 @@ export function ProductDetailsPage() {
     setDimensionsError(null);
     setIsEditingStock(false);
     setStockError(null);
+    setShowDeleteSkuConfirm(false);
+    setDeleteSkuError(null);
     if (shouldRefetch) {
       // limpar campos de upload de imagem
       setImageFiles([]);
@@ -1101,6 +1211,22 @@ export function ProductDetailsPage() {
     navigate('/products');
   };
 
+  const handleDeleteProduct = async () => {
+    if (!productId) return;
+    setIsDeletingProduct(true);
+    setDeleteProductError(null);
+    try {
+      await apiClient.delete(`/erp/products/${productId}`);
+      navigate('/products');
+    } catch (err) {
+      setDeleteProductError(
+        err instanceof Error ? err.message : 'Erro ao excluir produto.',
+      );
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  };
+
   if (!id || Number.isNaN(productId)) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-danger">
@@ -1111,16 +1237,16 @@ export function ProductDetailsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
-            className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-2.5 text-xs font-medium text-body hover:border-edge-strong hover:text-heading"
+            className="inline-flex h-9 items-center rounded-xl border border-edge-strong bg-surface px-3 text-xs font-medium text-body hover:text-heading active:scale-[0.98]"
           >
             ← Voltar
           </button>
           <div>
-            <h1 className="text-xl font-semibold text-heading">
+            <h1 className="text-lg font-semibold text-heading sm:text-xl">
               {data ? data.name : 'Carregando produto...'}
             </h1>
             {data && (
@@ -1137,9 +1263,63 @@ export function ProductDetailsPage() {
               Slug:{' '}
               <code className="text-[10px] text-heading">{data.slug}</code>
             </span>
+            {data.status !== 'PUBLISHED' && (
+              <button
+                type="button"
+                onClick={() => { setDeleteProductError(null); setShowDeleteProductConfirm(true); }}
+                className="inline-flex items-center rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-danger-action hover:text-danger"
+              >
+                Excluir produto
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Delete product confirmation modal */}
+      {showDeleteProductConfirm && data && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => !isDeletingProduct && setShowDeleteProductConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-edge bg-surface p-5 text-xs shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-sm font-semibold text-heading">
+              Excluir produto
+            </h3>
+            <p className="mb-4 text-[11px] leading-relaxed text-label">
+              Tem certeza que deseja excluir{' '}
+              <span className="font-semibold text-heading">{data.name}</span>?
+              Todos os SKUs associados também serão removidos. Esta ação não pode ser desfeita.
+            </p>
+            {deleteProductError && (
+              <div className="mb-3 rounded-lg border border-danger-edge bg-danger-soft px-3 py-2 text-[11px] text-danger">
+                {deleteProductError}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={() => setShowDeleteProductConfirm(false)}
+                className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-[11px] font-medium text-body hover:text-heading disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={handleDeleteProduct}
+                className="inline-flex h-8 items-center rounded-lg border border-danger-edge bg-danger-action px-3 text-[11px] font-semibold text-white shadow hover:bg-danger-action/90 disabled:opacity-50"
+              >
+                {isDeletingProduct ? 'Excluindo...' : 'Sim, excluir produto'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="rounded-xl border border-edge bg-surface p-6 text-sm text-label">
@@ -1155,20 +1335,20 @@ export function ProductDetailsPage() {
 
       {!isLoading && !error && data && (
         <>
-          <div className="flex items-center gap-4 rounded-xl border border-edge bg-surface p-4">
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-edge bg-surface p-4 sm:flex-row sm:items-start">
             {data.mainImageUrl ? (
               <img
                 src={data.mainImageUrl}
                 alt={data.name}
                 onClick={() => openLightbox([data.mainImageUrl!], 0)}
-                className="h-40 w-40 flex-shrink-0 cursor-pointer rounded-lg border border-edge object-cover transition hover:opacity-80"
+                className="h-32 w-32 flex-shrink-0 cursor-pointer rounded-xl border border-edge object-cover transition hover:opacity-80 sm:h-40 sm:w-40"
               />
             ) : (
-              <div className="flex h-40 w-40 flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-edge bg-surface-alt text-xs text-faint">
+              <div className="flex h-32 w-32 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-edge bg-surface-alt text-xs text-faint sm:h-40 sm:w-40">
                 Sem imagem principal
               </div>
             )}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                 Imagem principal
               </h2>
@@ -1179,7 +1359,7 @@ export function ProductDetailsPage() {
               </p>
               <button
                 onClick={handleOpenPrimaryPicker}
-                className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-edge-strong bg-surface-alt px-3 py-1.5 text-[11px] font-medium text-label transition hover:text-heading"
+                className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-xl border border-edge-strong bg-surface-alt px-3 py-2 text-[11px] font-medium text-label transition hover:text-heading active:scale-[0.98]"
               >
                 {data.mainImageUrl ? 'Alterar imagem' : 'Escolher imagem'}
               </button>
@@ -1187,8 +1367,8 @@ export function ProductDetailsPage() {
           </div>
 
           {showPrimaryPicker && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="relative max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-edge bg-surface p-5 shadow-xl">
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+              <div className="relative max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-edge bg-surface p-5 shadow-xl sm:max-w-2xl sm:rounded-xl">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-heading">
                     Escolher imagem principal
@@ -1262,7 +1442,7 @@ export function ProductDetailsPage() {
             </div>
           )}
 
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
+          <section className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
             <div className="rounded-xl border border-edge bg-surface p-4 text-sm">
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
@@ -1294,8 +1474,8 @@ export function ProductDetailsPage() {
           </section>
 
           <section className="rounded-xl border border-edge bg-surface p-4 text-xs">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
+            <div className="mb-3 flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
                     SKUs do produto
@@ -1305,83 +1485,95 @@ export function ProductDetailsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenCreateSku}
+                  className="inline-flex items-center gap-1 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-medium text-heading hover:border-brand hover:text-brand active:scale-[0.98]"
+                >
+                  Adicionar SKUs
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <select
+                  value={skuFilters.status ?? ''}
+                  onChange={(e) => {
+                    setSkuFilters((prev) => ({ ...prev, status: e.target.value as SkuStatus | '' }));
+                    setSkuPage(0);
+                  }}
+                  className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none sm:h-8 sm:w-auto sm:min-w-[140px]"
+                >
+                  <option value="">Todos os status</option>
+                  {(
+                    ['INCOMPLETE', 'READY', 'PUBLISHED', 'BLOCKED', 'DISCONTINUED'] as SkuStatus[]
+                  ).map((s) => (
+                    <option key={s} value={s}>
+                      {SKU_STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-1.5">
+                  {skuFilters.colorId && (() => {
+                    const sel = productColorsForImages.find((c) => c.id === Number(skuFilters.colorId));
+                    return sel ? (
+                      <span
+                        className="inline-block h-4 w-4 rounded-full border border-edge-strong"
+                        style={{ backgroundColor: sel.hexaCode }}
+                      />
+                    ) : null;
+                  })()}
                   <select
-                    value={skuFilters.status ?? ''}
+                    value={skuFilters.colorId ?? ''}
                     onChange={(e) => {
-                      setSkuFilters((prev) => ({ ...prev, status: e.target.value as SkuStatus | '' }));
+                      setSkuFilters((prev) => ({ ...prev, colorId: e.target.value ? Number(e.target.value) : '' }));
                       setSkuPage(0);
                     }}
-                    className="h-8 min-w-[140px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
+                    className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none sm:h-8 sm:w-auto sm:min-w-[140px]"
                   >
-                    <option value="">Todos os status</option>
-                    {(
-                      ['INCOMPLETE', 'READY', 'PUBLISHED', 'BLOCKED', 'DISCONTINUED'] as SkuStatus[]
-                    ).map((s) => (
-                      <option key={s} value={s}>
-                        {SKU_STATUS_LABEL[s]}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="flex items-center gap-1.5">
-                    {skuFilters.colorId && (() => {
-                      const sel = productColorsForImages.find((c) => c.id === Number(skuFilters.colorId));
-                      return sel ? (
-                        <span
-                          className="inline-block h-4 w-4 rounded-full border border-edge-strong"
-                          style={{ backgroundColor: sel.hexaCode }}
-                        />
-                      ) : null;
-                    })()}
-                    <select
-                      value={skuFilters.colorId ?? ''}
-                      onChange={(e) => {
-                        setSkuFilters((prev) => ({ ...prev, colorId: e.target.value ? Number(e.target.value) : '' }));
-                        setSkuPage(0);
-                      }}
-                      className="h-8 min-w-[140px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
-                    >
-                      <option value="">Todas as cores</option>
-                      {productColorsForImages.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <select
-                    value={skuFilters.sizeId ?? ''}
-                    onChange={(e) => {
-                      setSkuFilters((prev) => ({ ...prev, sizeId: e.target.value ? Number(e.target.value) : '' }));
-                      setSkuPage(0);
-                    }}
-                    className="h-8 min-w-[120px] rounded-lg border border-edge-strong bg-surface-input px-2.5 text-xs text-heading outline-none"
-                  >
-                    <option value="">Todos os tamanhos</option>
-                    {productSizesForFilters.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.etiqueta}
+                    <option value="">Todas as cores</option>
+                    {productColorsForImages.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
                       </option>
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <button
-                type="button"
-                onClick={handleOpenCreateSku}
-                className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1.5 text-[11px] font-medium text-heading hover:border-brand hover:text-brand"
-              >
-                Adicionar SKUs
-              </button>
+                <select
+                  value={skuFilters.sizeId ?? ''}
+                  onChange={(e) => {
+                    setSkuFilters((prev) => ({ ...prev, sizeId: e.target.value ? Number(e.target.value) : '' }));
+                    setSkuPage(0);
+                  }}
+                  className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none sm:h-8 sm:w-auto sm:min-w-[120px]"
+                >
+                  <option value="">Todos os tamanhos</option>
+                  {productSizesForFilters.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-lg border border-edge bg-surface">
               <table className="min-w-full border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-edge bg-surface-alt text-[11px] uppercase tracking-[0.12em] text-muted">
+                    <th className="w-8 px-2 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={(() => {
+                          const selectableIds = skusItems.filter((s) => s.status !== 'PUBLISHED').map((s) => s.id);
+                          return selectableIds.length > 0 && selectableIds.every((sid) => selectedSkuIds.has(sid));
+                        })()}
+                        onChange={toggleSelectAllSkus}
+                        className="h-3.5 w-3.5 cursor-pointer accent-pink-500"
+                        title="Selecionar todos"
+                      />
+                    </th>
                     <th className="px-3 py-2 text-left font-semibold">Cor</th>
                     <th className="px-3 py-2 text-left font-semibold">Tamanho</th>
                     <th className="px-3 py-2 text-left font-semibold">Status</th>
@@ -1395,13 +1587,26 @@ export function ProductDetailsPage() {
                     return sorted.map((sku: SkuSummaryDTO) => {
                       const showColorHeader = sku.colorName !== lastColor;
                       lastColor = sku.colorName;
+                      const isSelected = selectedSkuIds.has(sku.id);
+                      const isPublished = sku.status === 'PUBLISHED';
                       return (
                         <tr
                           key={sku.id}
-                          className={`cursor-pointer border-t hover:bg-surface-alt ${showColorHeader ? 'border-edge-strong' : 'border-edge'}`}
+                          className={`cursor-pointer border-t hover:bg-surface-alt ${showColorHeader ? 'border-edge-strong' : 'border-edge'} ${isSelected ? 'bg-brand-soft/40' : ''}`}
                           onClick={() => handleSelectSku(sku.id)}
                           title={sku.code}
                         >
+                          <td className="w-8 px-2 py-2 text-center align-middle">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isPublished}
+                              onChange={(e) => toggleSkuSelection(sku.id, e)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-3.5 w-3.5 cursor-pointer accent-pink-500 disabled:cursor-not-allowed disabled:opacity-40"
+                              title={isPublished ? 'SKUs publicados não podem ser excluídos' : undefined}
+                            />
+                          </td>
                           <td className="px-3 py-2 align-middle text-[11px] text-body">
                             {showColorHeader && (
                               <span className="inline-flex items-center gap-1.5">
@@ -1431,6 +1636,99 @@ export function ProductDetailsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Floating batch action bar */}
+            {selectedSkuIds.size > 0 && (
+              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-edge-strong bg-surface-alt p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-[11px] text-body">
+                  <span className="font-semibold text-heading">{selectedSkuIds.size}</span> SKU(s) selecionado(s)
+                  {nonDeletableCount > 0 && (
+                    <span className="ml-2 text-[10px] text-warning">
+                      ({nonDeletableCount} publicado(s) — não podem ser excluídos)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSkuIds(new Set())}
+                    className="inline-flex items-center rounded-lg border border-edge-strong bg-surface px-3 py-1.5 text-[11px] font-medium text-body hover:bg-surface-alt"
+                  >
+                    Limpar seleção
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletableSelectedSkus.length === 0}
+                    onClick={() => { setBatchDeleteError(null); setShowBatchDeleteConfirm(true); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-danger-edge bg-danger-soft px-3 py-1.5 text-[11px] font-medium text-danger transition hover:bg-danger-soft/80 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Excluir {deletableSelectedSkus.length} SKU(s)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Batch delete confirmation modal */}
+            {showBatchDeleteConfirm && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+                onClick={() => !isDeletingBatch && setShowBatchDeleteConfirm(false)}
+              >
+                <div
+                  className="w-full max-w-sm rounded-xl border border-edge bg-surface p-5 text-xs shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="mb-3 text-sm font-semibold text-heading">
+                    Confirmar exclusão de SKUs
+                  </h3>
+                  <p className="mb-2 text-[11px] leading-relaxed text-label">
+                    Você está prestes a excluir{' '}
+                    <span className="font-semibold text-danger">
+                      {deletableSelectedSkus.length} SKU(s)
+                    </span>.
+                    Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="mb-3 max-h-32 overflow-auto rounded-lg border border-edge bg-surface-alt p-2">
+                    {deletableSelectedSkus.map((sku) => (
+                      <div key={sku.id} className="flex items-center gap-2 py-0.5 text-[10px] text-body">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full border border-edge-strong"
+                          style={{ backgroundColor: colors.find((c) => c.nome === sku.colorName)?.hexaCode }}
+                        />
+                        <span className="font-medium text-heading">{sku.colorName}</span>
+                        <span>•</span>
+                        <span>{sku.sizeName}</span>
+                        <span className="ml-auto font-mono text-faint">{sku.code}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {batchDeleteError && (
+                    <div className="mb-3 rounded-lg border border-danger-edge bg-danger-soft px-3 py-2 text-[11px] text-danger">
+                      {batchDeleteError}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={isDeletingBatch}
+                      onClick={() => setShowBatchDeleteConfirm(false)}
+                      className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-[11px] font-medium text-body hover:text-heading disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeletingBatch}
+                      onClick={handleBatchDeleteSkus}
+                      className="inline-flex h-8 items-center rounded-lg border border-danger-edge bg-danger-action px-3 text-[11px] font-semibold text-white shadow hover:bg-danger-action/90 disabled:opacity-50"
+                    >
+                      {isDeletingBatch ? 'Excluindo...' : `Sim, excluir ${deletableSelectedSkus.length} SKU(s)`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-3 flex items-center justify-between text-[11px] text-muted">
               <div>
                 <span>
@@ -1470,7 +1768,7 @@ export function ProductDetailsPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-medium text-label">
                   Cor do produto
@@ -1838,8 +2136,8 @@ export function ProductDetailsPage() {
           )}
 
           {showEditProduct && (
-            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-              <div className="w-full max-w-lg rounded-2xl border border-edge bg-surface p-5 text-xs shadow-2xl shadow-black/70">
+            <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 px-0 sm:items-center sm:px-4">
+              <div className="w-full max-h-[90vh] overflow-y-auto rounded-t-2xl border border-edge bg-surface p-5 text-xs shadow-2xl shadow-black/70 sm:max-w-lg sm:rounded-2xl">
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold text-heading">Editar produto</h2>
                   <button onClick={() => setShowEditProduct(false)} className="text-muted hover:text-heading text-lg leading-none">&times;</button>
@@ -1867,16 +2165,29 @@ export function ProductDetailsPage() {
                 />
 
                 <label className="mb-1 block text-[11px] font-medium text-muted">Categoria</label>
-                <select
-                  value={editForm.categoryId}
-                  onChange={(e) => setEditForm((f) => ({ ...f, categoryId: Number(e.target.value) }))}
-                  className="mb-4 w-full rounded-lg border border-edge-strong bg-surface-input px-3 py-2 text-xs text-heading outline-none focus:border-brand"
-                >
-                  <option value={0} disabled>Selecione uma categoria</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
+                <div className="mb-4">
+                  <CategoryLeafPicker
+                    categories={categories}
+                    value={editForm.categoryId || null}
+                    onChange={(selectedCategoryId) =>
+                      setEditForm((form) => ({
+                        ...form,
+                        categoryId: selectedCategoryId,
+                      }))
+                    }
+                  />
+                </div>
+                <p className="mb-4 text-[11px] text-muted">
+                  Produtos devem ficar em categorias folha, como
+                  {' '}
+                  <span className="font-medium text-heading">Roupas / Leggings</span>.
+                </p>
+                {editForm.categoryId !== 0 && !isLeafCategorySelected && (
+                  <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                    A categoria atual nao e uma subcategoria final. Escolha uma
+                    subcategoria valida para salvar.
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2">
                   <button
@@ -1887,7 +2198,7 @@ export function ProductDetailsPage() {
                   </button>
                   <button
                     onClick={handleSaveProduct}
-                    disabled={isSavingProduct || !editForm.name.trim()}
+                    disabled={isSavingProduct || !editForm.name.trim() || !isLeafCategorySelected}
                     className="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover disabled:opacity-50"
                   >
                     {isSavingProduct ? 'Salvando…' : 'Salvar'}
@@ -1898,8 +2209,8 @@ export function ProductDetailsPage() {
           )}
 
           {showCreateSku && (
-            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-              <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl border border-edge bg-surface p-5 text-xs shadow-2xl shadow-black/70">
+            <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 px-0 sm:items-center sm:px-4">
+              <div className="max-h-[95vh] w-full overflow-auto rounded-t-2xl border border-edge bg-surface p-4 text-xs shadow-2xl shadow-black/70 sm:max-w-4xl sm:rounded-2xl sm:p-5">
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-heading">
@@ -2223,7 +2534,7 @@ export function ProductDetailsPage() {
           )}
 
           {selectedSkuId !== null && (
-            <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-edge bg-surface p-4 text-xs shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+            <div className="fixed inset-0 z-40 flex flex-col bg-surface p-4 text-xs sm:inset-y-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-md sm:border-l sm:border-edge sm:shadow-[0_0_40px_rgba(0,0,0,0.8)]">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
                   <h2 className="text-sm font-semibold text-heading">
@@ -2556,6 +2867,50 @@ export function ProductDetailsPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Delete SKU */}
+                  {selectedSku.status !== 'PUBLISHED' && (
+                    <div className="border-t border-edge pt-3">
+                      {!showDeleteSkuConfirm ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteSkuConfirm(true)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-danger-edge bg-danger-soft px-3 py-1.5 text-[11px] font-medium text-danger transition hover:bg-danger-soft/80"
+                        >
+                          Excluir SKU
+                        </button>
+                      ) : (
+                        <div className="rounded-lg border border-danger-edge bg-danger-soft p-3">
+                          <p className="mb-2 text-[11px] text-danger">
+                            Tem certeza que deseja excluir o SKU{' '}
+                            <span className="font-mono font-semibold">{selectedSku.code}</span>?
+                            Esta ação não pode ser desfeita.
+                          </p>
+                          {deleteSkuError && (
+                            <p className="mb-2 text-[10px] font-medium text-danger">{deleteSkuError}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={isDeletingSku}
+                              onClick={handleDeleteSku}
+                              className="inline-flex items-center rounded-lg border border-danger-edge bg-danger-action px-3 py-1 text-[11px] font-semibold text-white shadow hover:bg-danger-action/90 disabled:opacity-50"
+                            >
+                              {isDeletingSku ? 'Excluindo...' : 'Sim, excluir'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isDeletingSku}
+                              onClick={() => { setShowDeleteSkuConfirm(false); setDeleteSkuError(null); }}
+                              className="inline-flex items-center rounded-lg border border-edge-strong bg-surface px-3 py-1 text-[11px] font-medium text-body hover:bg-surface-alt disabled:opacity-50"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

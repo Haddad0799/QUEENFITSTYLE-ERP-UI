@@ -89,24 +89,22 @@ export function ProductImportPage() {
   const hasErrors = result && result.errors.length > 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link
-            to="/products"
-            className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-          >
-            ← Voltar para Produtos
-          </Link>
-          <h1 className="text-xl font-semibold text-heading">
-            Importar Produtos via Planilha
-          </h1>
-          <p className="text-xs text-muted">
-            Faça upload de uma planilha .xlsx para criar produtos e SKUs em
-            lote.
-          </p>
-        </div>
+      <div>
+        <Link
+          to="/products"
+          className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+        >
+          ← Voltar para Produtos
+        </Link>
+        <h1 className="text-lg font-semibold text-heading sm:text-xl">
+          Importar Produtos via Planilha
+        </h1>
+        <p className="text-xs text-muted">
+          Faça upload de uma planilha .xlsx para criar produtos e SKUs em
+          lote.
+        </p>
       </div>
 
       {/* Section A — Instructions & Template */}
@@ -161,14 +159,14 @@ export function ProductImportPage() {
         </div>
 
         {/* Template download */}
-        <div className="flex items-center gap-3 rounded-lg border border-edge bg-surface-alt p-3">
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-edge bg-surface-alt p-3 sm:flex-row sm:items-center">
           <span className="text-xl">📥</span>
           <div className="flex-1">
             <p className="text-xs font-semibold text-heading">Template</p>
           </div>
           <button
             onClick={downloadImportTemplate}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-3.5 py-2.5 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover active:scale-[0.98] sm:w-auto"
           >
             Baixar Template (.xlsx)
           </button>
@@ -352,17 +350,17 @@ export function ProductImportPage() {
           )}
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <button
               onClick={handleReset}
-              className="inline-flex items-center gap-2 rounded-lg border border-edge bg-surface-alt px-3.5 py-2 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-edge bg-surface-alt px-3.5 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface active:scale-[0.98] sm:h-auto sm:py-2"
             >
               <span className="text-base leading-none">📤</span>
               Importar outro arquivo
             </button>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand px-3.5 text-xs font-semibold text-on-brand shadow shadow-brand/40 transition hover:bg-brand-hover active:scale-[0.98] sm:h-auto sm:py-2"
             >
               Ver produtos
             </Link>
