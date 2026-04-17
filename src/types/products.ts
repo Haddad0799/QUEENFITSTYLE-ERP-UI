@@ -12,6 +12,8 @@ export type ProductSummaryDTO = {
   mainImageUrl: string | null;
   categoryName: string;
   status: ProductStatus;
+  launch?: boolean;
+  isLaunch?: boolean;
 };
 
 export type PageResponseProductSummaryDTO = {
@@ -46,7 +48,8 @@ export type ProductDetailsDTO = {
   categoryId: number;
   categoryName: string;
   status: ProductStatus;
+  launch?: boolean;
+  isLaunch?: boolean;
   skus: SkuSummaryDTO[];
 };
-
 

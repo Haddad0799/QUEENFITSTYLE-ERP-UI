@@ -37,13 +37,10 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         {/* Search bar */}
         <div className="relative hidden flex-1 sm:block sm:max-w-md">
           <input
-            placeholder="Buscar por produto, SKU ou categoria..."
+            placeholder="Buscar produto ou SKU..."
             className="h-9 w-full rounded-xl border border-edge-strong bg-surface-input px-3 pl-9 text-sm text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25"
           />
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden text-[10px] text-faint md:inline">
-            Ctrl + K
-          </span>
         </div>
       </div>
 
@@ -79,4 +76,3 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     </header>
   );
 }
-

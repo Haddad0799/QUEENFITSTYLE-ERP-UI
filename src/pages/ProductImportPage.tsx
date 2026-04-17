@@ -2,7 +2,11 @@ import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 import { downloadImportTemplate } from '../lib/generate-import-template';
-import type { ImportResult } from '../types/import';
+import type {
+  ImportProductResult,
+  ImportProductStatus,
+  ImportResult,
+} from '../types/import';
 
 export function ProductImportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,63 +20,75 @@ export function ProductImportPage() {
   const acceptMime =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-  const validateFile = (f: File): boolean => {
-    if (!f.name.endsWith('.xlsx') && f.type !== acceptMime) {
+  const validateFile = (selectedFile: File): boolean => {
+    if (!selectedFile.name.endsWith('.xlsx') && selectedFile.type !== acceptMime) {
       setError('Formato inválido. Envie apenas arquivos .xlsx (Excel).');
       return false;
     }
+
     return true;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-    const selected = e.target.files?.[0];
-    if (selected && validateFile(selected)) {
-      setFile(selected);
+    const selectedFile = event.target.files?.[0];
+
+    if (selectedFile && validateFile(selectedFile)) {
+      setFile(selectedFile);
     }
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
     setIsDragging(false);
     setError(null);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped && validateFile(dropped)) {
-      setFile(dropped);
+
+    const droppedFile = event.dataTransfer.files[0];
+    if (droppedFile && validateFile(droppedFile)) {
+      setFile(droppedFile);
     }
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
     setIsDragging(false);
   }, []);
 
   const handleRemoveFile = () => {
     setFile(null);
     setError(null);
-    if (inputRef.current) inputRef.current.value = '';
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   const handleUpload = async () => {
     if (!file) return;
+
     setIsUploading(true);
     setError(null);
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await apiClient.postMultipart<ImportResult>(
+
+      const response = await apiClient.postMultipart<ImportResult>(
         '/erp/products/import',
         formData,
       );
-      setResult(res);
-    } catch (err) {
+
+      setResult(response);
+    } catch (uploadError) {
       setError(
-        err instanceof Error ? err.message : 'Erro ao importar planilha.',
+        uploadError instanceof Error
+          ? uploadError.message
+          : 'Erro ao importar planilha.',
       );
     } finally {
       setIsUploading(false);
@@ -83,14 +99,19 @@ export function ProductImportPage() {
     setFile(null);
     setResult(null);
     setError(null);
-    if (inputRef.current) inputRef.current.value = '';
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
-  const hasErrors = result && result.errors.length > 0;
+  const hasErrors = Boolean(result && result.errors.length > 0);
+  const productResults = result?.products ?? [];
+  const hasProductDetails = productResults.length > 0;
+  const summary = result ? buildImportSummary(result) : null;
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      {/* Header */}
       <div>
         <Link
           to="/products"
@@ -102,14 +123,11 @@ export function ProductImportPage() {
           Importar Produtos via Planilha
         </h1>
         <p className="text-xs text-muted">
-          Faça upload de uma planilha .xlsx para criar produtos e SKUs em
-          lote.
+          Faça upload de uma planilha .xlsx para criar produtos e SKUs em lote.
         </p>
       </div>
 
-      {/* Section A — Instructions & Template */}
       <div className="rounded-xl border border-edge bg-surface p-5">
-        {/* Como usar */}
         <div className="mb-4">
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-heading">
             <span>📄</span> Como usar
@@ -121,7 +139,6 @@ export function ProductImportPage() {
           </ol>
         </div>
 
-        {/* Atenção */}
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
             <span>⚠️</span> Atenção
@@ -133,7 +150,6 @@ export function ProductImportPage() {
           </ul>
         </div>
 
-        {/* O sistema faz automaticamente */}
         <div className="mb-4 rounded-lg border border-edge bg-surface-alt p-3">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-label">
             <span>⚙️</span> O sistema faz automaticamente
@@ -147,7 +163,6 @@ export function ProductImportPage() {
           </ul>
         </div>
 
-        {/* Em caso de erro */}
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300">
             <span>❗</span> Em caso de erro
@@ -158,7 +173,6 @@ export function ProductImportPage() {
           </ul>
         </div>
 
-        {/* Template download */}
         <div className="flex flex-col items-start gap-3 rounded-xl border border-edge bg-surface-alt p-3 sm:flex-row sm:items-center">
           <span className="text-xl">📥</span>
           <div className="flex-1">
@@ -173,14 +187,12 @@ export function ProductImportPage() {
         </div>
       </div>
 
-      {/* Section B — File upload (hidden when results are shown) */}
       {!result && (
         <div className="rounded-xl border border-edge bg-surface p-5">
           <h2 className="mb-3 text-sm font-semibold text-heading">
             Enviar planilha
           </h2>
 
-          {/* Drop zone */}
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -200,8 +212,8 @@ export function ProductImportPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={(event) => {
+                    event.stopPropagation();
                     handleRemoveFile();
                   }}
                   className="rounded-md px-1.5 py-0.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
@@ -228,14 +240,12 @@ export function ProductImportPage() {
             />
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
               {error}
             </div>
           )}
 
-          {/* Submit */}
           <button
             onClick={handleUpload}
             disabled={!file || isUploading}
@@ -244,7 +254,7 @@ export function ProductImportPage() {
             {isUploading ? (
               <>
                 <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-on-brand/30 border-t-on-brand" />
-                Processando…
+                Processando...
               </>
             ) : (
               <>
@@ -256,14 +266,27 @@ export function ProductImportPage() {
         </div>
       )}
 
-      {/* Section C — Results */}
       {result && (
         <div className="rounded-xl border border-edge bg-surface p-5">
           <h2 className="mb-4 text-sm font-semibold text-heading">
             Resultado da importação
           </h2>
 
-          {/* Metric cards */}
+          {summary && (
+            <div
+              className={`mb-5 rounded-xl border px-4 py-3 ${
+                summary.tone === 'success'
+                  ? 'border-green-200 bg-green-50 text-green-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                  : summary.tone === 'warning'
+                    ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                    : 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300'
+              }`}
+            >
+              <p className="text-sm font-semibold">{summary.title}</p>
+              <p className="mt-1 text-xs leading-relaxed">{summary.description}</p>
+            </div>
+          )}
+
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             <MetricCard
               label="Total de linhas"
@@ -281,7 +304,7 @@ export function ProductImportPage() {
               color="green"
             />
             <MetricCard
-              label="Produtos reaproveitados"
+              label="Produtos reutilizados"
               value={result.productsReused}
               color="blue"
             />
@@ -302,11 +325,32 @@ export function ProductImportPage() {
             />
           </div>
 
-          {/* Errors table */}
+          {hasProductDetails && (
+            <div className="mb-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-heading">
+                  Detalhamento por produto
+                </h3>
+                <span className="text-xs text-muted">
+                  {productResults.length} produto(s) processado(s)
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {productResults.map((product) => (
+                  <ProductResultCard
+                    key={`${product.slug}-${product.category}`}
+                    product={product}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {hasErrors && (
             <div className="mb-5">
               <h3 className="mb-2 text-xs font-semibold text-red-600 dark:text-red-400">
-                Erros ({result.errors.length})
+                Erros gerais da importação ({result.errors.length})
               </h3>
               <div className="max-h-72 overflow-auto rounded-lg border border-red-200 dark:border-red-500/30">
                 <table className="w-full text-xs">
@@ -320,26 +364,26 @@ export function ProductImportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-100 dark:divide-red-500/20">
-                    {result.errors.map((err, i) => (
+                    {result.errors.map((importError, index) => (
                       <tr
-                        key={i}
+                        key={index}
                         className="bg-red-50/50 text-red-700 dark:bg-red-500/5 dark:text-red-300"
                       >
                         <td className="whitespace-nowrap px-3 py-2 font-mono">
-                          {err.rowNumber}
+                          {importError.rowNumber}
                         </td>
-                        <td className="px-3 py-2">{err.productName}</td>
-                        <td className="px-3 py-2">{err.category}</td>
+                        <td className="px-3 py-2">{importError.productName}</td>
+                        <td className="px-3 py-2">{importError.category}</td>
                         <td className="px-3 py-2 font-mono">
-                          {err.skuCode}
+                          {importError.skuCode}
                         </td>
                         <td className="px-3 py-2">
-                          {err.field && (
+                          {importError.field && (
                             <span className="mr-1 font-semibold">
-                              [{err.field}]
+                              [{importError.field}]
                             </span>
                           )}
-                          {err.message}
+                          {importError.message}
                         </td>
                       </tr>
                     ))}
@@ -349,7 +393,6 @@ export function ProductImportPage() {
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <button
               onClick={handleReset}
@@ -371,8 +414,6 @@ export function ProductImportPage() {
   );
 }
 
-/* ─── small helper ─── */
-
 type MetricColor = 'gray' | 'green' | 'blue' | 'yellow' | 'red';
 
 const COLOR_MAP: Record<MetricColor, string> = {
@@ -383,6 +424,21 @@ const COLOR_MAP: Record<MetricColor, string> = {
   yellow:
     'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
   red: 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300',
+};
+
+const PRODUCT_STATUS_LABELS: Record<ImportProductStatus, string> = {
+  CREATED: 'Produto criado',
+  REUSED: 'Produto reutilizado',
+  FAILED: 'Produto com falha',
+};
+
+const PRODUCT_STATUS_COLOR_MAP: Record<ImportProductStatus, string> = {
+  CREATED:
+    'border-green-200 bg-green-50 text-green-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300',
+  REUSED:
+    'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300',
+  FAILED:
+    'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300',
 };
 
 function MetricCard({
@@ -400,4 +456,129 @@ function MetricCard({
       <p className="text-xl font-bold">{value}</p>
     </div>
   );
+}
+
+function DetailStat({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: MetricColor;
+}) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${COLOR_MAP[color]}`}>
+      <p className="text-[11px] font-medium opacity-70">{label}</p>
+      <p className="text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ProductResultCard({ product }: { product: ImportProductResult }) {
+  return (
+    <div className="rounded-xl border border-edge bg-surface-alt p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-heading">
+            {product.productName}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {product.category} • {product.totalRows} linha(s)
+          </p>
+        </div>
+        <span
+          className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[11px] font-semibold ${PRODUCT_STATUS_COLOR_MAP[product.productStatus]}`}
+        >
+          {PRODUCT_STATUS_LABELS[product.productStatus]}
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <DetailStat label="Linhas" value={product.totalRows} color="gray" />
+        <DetailStat
+          label="SKUs criados"
+          value={product.skusCreated}
+          color="green"
+        />
+        <DetailStat
+          label="SKUs ignorados"
+          value={product.skusIgnored}
+          color="yellow"
+        />
+        <DetailStat
+          label="SKUs com falha"
+          value={product.skusFailed}
+          color="red"
+        />
+      </div>
+
+      {product.errors.length > 0 && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
+          <p className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">
+            Ocorrências neste produto
+          </p>
+          <ul className="space-y-1 text-xs text-red-700 dark:text-red-300">
+            {product.errors.map((productError, index) => (
+              <li key={`${product.slug}-error-${index}`}>
+                {formatProductError(productError)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function buildImportSummary(result: ImportResult): {
+  title: string;
+  description: string;
+  tone: 'success' | 'warning' | 'info';
+} {
+  if (result.errors.length > 0 || result.skusFailed > 0) {
+    return {
+      title: 'Importação concluída com pendências',
+      description: `O arquivo foi processado com ${result.totalRows} linha(s), mas houve ${result.skusFailed} SKU(s) com falha e ${result.errors.length} erro(s) geral(is) para revisão.`,
+      tone: 'warning',
+    };
+  }
+
+  if (
+    result.skusCreated === 0 &&
+    result.skusIgnored > 0 &&
+    result.productsReused > 0
+  ) {
+    return {
+      title: 'Nenhum SKU novo foi criado',
+      description: `Os ${result.productsReused} produto(s) já existiam e ${result.skusIgnored} SKU(s) foram ignorados, provavelmente por já estarem cadastrados.`,
+      tone: 'info',
+    };
+  }
+
+  return {
+    title: 'Importação concluída com sucesso',
+    description: `Foram processadas ${result.validRows} linha(s) válida(s), com ${result.productsCreated} produto(s) criado(s) e ${result.skusCreated} SKU(s) novo(s).`,
+    tone: 'success',
+  };
+}
+
+function formatProductError(
+  error: ImportProductResult['errors'][number],
+): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  const details = [
+    error.rowNumber ? `Linha ${error.rowNumber}` : null,
+    error.skuCode ? `SKU ${error.skuCode}` : null,
+    error.field ? `campo ${error.field}` : null,
+  ].filter(Boolean);
+
+  if (details.length === 0) {
+    return error.message;
+  }
+
+  return `${details.join(', ')}: ${error.message}`;
 }

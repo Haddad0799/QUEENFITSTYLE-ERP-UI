@@ -15,6 +15,9 @@ type Filters = {
   categoryId?: number | '';
 };
 
+const isLaunchProduct = (product: Pick<ProductSummaryDTO, 'launch' | 'isLaunch'>) =>
+  Boolean(product.launch ?? product.isLaunch);
+
 const STATUS_LABEL: Record<ProductStatus, string> = {
   DRAFT: 'Rascunho',
   READY_FOR_SALE: 'Pronto p/ venda',
@@ -256,7 +259,14 @@ export function ProductsPage() {
                           </div>
                         )}
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium text-heading">{product.name}</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-heading">{product.name}</span>
+                            {isLaunchProduct(product) && (
+                              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                Lançamento
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[11px] text-faint">ID #{product.id}</span>
                         </div>
                       </div>
@@ -332,9 +342,16 @@ export function ProductsPage() {
                   </div>
                 )}
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="truncate text-sm font-medium text-heading">
-                    {product.name}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-medium text-heading">
+                      {product.name}
+                    </span>
+                    {isLaunchProduct(product) && (
+                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        Lançamento
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[11px] text-muted">
                     {product.categoryName}
                   </span>

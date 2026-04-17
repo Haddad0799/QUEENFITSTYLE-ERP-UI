@@ -14,6 +14,7 @@ export function ProductCreatePage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [launch, setLaunch] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -44,6 +45,7 @@ export function ProductCreatePage() {
         name: name.trim(),
         description: description.trim() || null,
         categoryId: Number(categoryId),
+        isLaunch: launch,
       });
 
       navigate('/products');
@@ -110,6 +112,23 @@ export function ProductCreatePage() {
         </div>
 
         <div className="space-y-4">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-edge bg-surface-alt px-3 py-3 transition hover:border-brand/40">
+            <input
+              type="checkbox"
+              checked={launch}
+              onChange={(e) => setLaunch(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border border-edge-strong text-brand focus:ring-brand/30"
+            />
+            <span className="space-y-1">
+              <span className="block text-[11px] font-medium text-label">
+                Marcar como lançamento
+              </span>
+              <span className="block text-[11px] text-muted">
+                Publica o produto no ecommerce com destaque de lançamento.
+              </span>
+            </span>
+          </label>
+
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-medium text-label">
               Categoria
@@ -122,8 +141,7 @@ export function ProductCreatePage() {
               }
             />
             <p className="text-[11px] text-muted">
-              O produto deve ser vinculado a uma categoria final, como
-              {' '}
+              O produto deve ser vinculado a uma categoria final, como{' '}
               <span className="font-medium text-heading">Roupas / Leggings</span>.
             </p>
           </div>
@@ -155,4 +173,3 @@ export function ProductCreatePage() {
     </div>
   );
 }
-

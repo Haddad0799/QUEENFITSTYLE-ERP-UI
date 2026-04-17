@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CategoryLeafPicker } from '../components/CategoryLeafPicker';
+import {
+  ProductDescriptionField,
+  type ProductAIDescriptionRequest,
+} from '../components/ProductDescriptionField';
 import { apiClient } from '../lib/api-client';
 import { extractCategories, getLeafCategoryOptions } from '../lib/category-utils';
 import { DEFAULT_PAGE_SIZE } from '../config';
@@ -39,6 +43,9 @@ const SKU_STATUS_LABEL: Record<SkuStatus, string> = {
   BLOCKED: 'Bloqueado',
   DISCONTINUED: 'Descontinuado',
 };
+
+const isLaunchProduct = (product: Pick<ProductDetailsDTO, 'launch' | 'isLaunch'>) =>
+  Boolean(product.launch ?? product.isLaunch);
 
 const SKU_STATUS_BADGE: Record<SkuStatus, string> = {
   INCOMPLETE: 'bg-amber-50 text-amber-700 border-amber-200 dark:border-amber-400/60 dark:bg-amber-500/10 dark:text-amber-200',
@@ -86,7 +93,12 @@ export function ProductDetailsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [showEditProduct, setShowEditProduct] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '', categoryId: 0 });
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    categoryId: 0,
+    launch: false,
+  });
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [editProductError, setEditProductError] = useState<string | null>(null);
   const [skuFormError, setSkuFormError] = useState<string | null>(null);
@@ -212,6 +224,22 @@ export function ProductDetailsPage() {
       ),
     [categories, editForm.categoryId],
   );
+
+  const selectedEditCategory = useMemo(
+    () =>
+      getLeafCategoryOptions(categories).find(
+        (category) => category.id === editForm.categoryId,
+      ),
+    [categories, editForm.categoryId],
+  );
+
+  const editDescriptionProductData: ProductAIDescriptionRequest = {
+    productName: editForm.name,
+    categoryName: selectedEditCategory?.rootName,
+    subcategoryName: selectedEditCategory?.name,
+    brand: 'QueenFitStyle',
+    additionalDetails: editForm.description,
+  };
 
   const loadProductImages = async (): Promise<ProductColorImagesDTO[] | undefined> => {
     if (!productId) return;
@@ -343,7 +371,12 @@ export function ProductDetailsPage() {
 
   const handleOpenEditProduct = () => {
     if (!data) return;
-    setEditForm({ name: data.name, description: data.description ?? '', categoryId: data.categoryId });
+    setEditForm({
+      name: data.name,
+      description: data.description ?? '',
+      categoryId: data.categoryId,
+      launch: isLaunchProduct(data),
+    });
     setEditProductError(null);
     setShowEditProduct(true);
   };
@@ -357,6 +390,7 @@ export function ProductDetailsPage() {
         name: editForm.name,
         description: editForm.description,
         categoryId: editForm.categoryId,
+        isLaunch: editForm.launch,
       });
       const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${id}`);
       setData(refreshed);
@@ -1456,6 +1490,13 @@ export function ProductDetailsPage() {
                 </button>
               </div>
               <p className="mb-3 text-sm text-body">{data.description}</p>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {isLaunchProduct(data) && (
+                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                    Lançamento
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted">
                 Categoria:{' '}
                 <span className="font-medium text-heading">
@@ -2156,6 +2197,18 @@ export function ProductDetailsPage() {
                   className="mb-3 w-full rounded-lg border border-edge-strong bg-surface-input px-3 py-2 text-xs text-heading outline-none focus:border-brand"
                 />
 
+                <div className="mb-3">
+                  <ProductDescriptionField
+                    description={editForm.description}
+                    onDescriptionChange={(value) =>
+                      setEditForm((form) => ({ ...form, description: value }))
+                    }
+                    productData={editDescriptionProductData}
+                    label="Ajuda da IA"
+                    hideTextarea
+                  />
+                </div>
+
                 <label className="mb-1 block text-[11px] font-medium text-muted">Descrição</label>
                 <textarea
                   value={editForm.description}
@@ -2177,11 +2230,27 @@ export function ProductDetailsPage() {
                     }
                   />
                 </div>
-                <p className="mb-4 text-[11px] text-muted">
-                  Produtos devem ficar em categorias folha, como
-                  {' '}
-                  <span className="font-medium text-heading">Roupas / Leggings</span>.
-                </p>
+                <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-lg border border-edge bg-surface-alt px-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={editForm.launch}
+                    onChange={(e) =>
+                      setEditForm((form) => ({
+                        ...form,
+                        launch: e.target.checked,
+                      }))
+                    }
+                    className="mt-0.5 h-4 w-4 rounded border border-edge-strong text-brand focus:ring-brand/30"
+                  />
+                  <span className="space-y-1">
+                    <span className="block text-[11px] font-medium text-heading">
+                      Marcar como lançamento
+                    </span>
+                    <span className="block text-[11px] text-muted">
+                      Mantém o produto identificado no ecommerce como lançamento.
+                    </span>
+                  </span>
+                </label>
                 {editForm.categoryId !== 0 && !isLeafCategorySelected && (
                   <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
                     A categoria atual nao e uma subcategoria final. Escolha uma
