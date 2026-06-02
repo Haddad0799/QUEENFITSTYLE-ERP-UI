@@ -14,6 +14,57 @@ export type PageResponse<T> = {
   totalPages: number;
 };
 
+/**
+ * Erros que carregam o status HTTP — útil para o AuthProvider decidir se
+ * deve forçar logout (401) sem precisar parsear a mensagem.
+ */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiError';
+  }
+}
+
+export const AUTH_TOKEN_STORAGE_KEY = 'qf:auth:token';
+export const AUTH_UNAUTHORIZED_EVENT = 'qf:auth:unauthorized';
+
+const PUBLIC_PATH_PREFIXES = ['/auth/login'];
+
+const isPublicPath = (path: string) =>
+  PUBLIC_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+
+const readToken = (): string | null => {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const clearToken = () => {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    // ambiente sem storage — apenas ignoramos
+  }
+};
+
+const buildHeaders = (
+  path: string,
+  extra: Record<string, string> = {},
+  includeJson = true,
+): HeadersInit => {
+  const headers: Record<string, string> = { ...extra };
+  if (includeJson) headers['Content-Type'] = 'application/json';
+  const token = readToken();
+  if (token && !isPublicPath(path)) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 const buildQuery = (params: Record<string, unknown>) => {
   const search = new URLSearchParams();
 
@@ -23,7 +74,6 @@ const buildQuery = (params: Record<string, unknown>) => {
     if (Array.isArray(value)) {
       value.forEach((v) => search.append(key, String(v)));
     } else if (typeof value === 'object') {
-      // Para objetos simples, serializamos como JSON
       search.append(key, JSON.stringify(value));
     } else {
       search.append(key, String(value));
@@ -34,20 +84,33 @@ const buildQuery = (params: Record<string, unknown>) => {
   return queryString ? `?${queryString}` : '';
 };
 
-async function handleResponse<T>(response: Response): Promise<T> {
+async function handleResponse<T>(
+  response: Response,
+  path: string,
+): Promise<T> {
   if (!response.ok) {
     const text = await response.text();
     let message = text || `Erro ${response.status}`;
     try {
       const problem = JSON.parse(text);
       if (problem.detail) message = problem.detail;
+      else if (problem.message) message = problem.message;
     } catch {
       // not JSON — keep raw text
     }
-    throw new Error(message);
+
+    if (response.status === 401 && !isPublicPath(path)) {
+      clearToken();
+      try {
+        window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+      } catch {
+        // SSR/teste — ignorar
+      }
+    }
+
+    throw new ApiError(message, response.status);
   }
 
-  // Sem conteúdo (204) ou corpo vazio
   if (response.status === 204) {
     return undefined as unknown as T;
   }
@@ -60,7 +123,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   try {
     return (await response.json()) as T;
   } catch {
-    // Alguns endpoints podem retornar 200/201 sem corpo
     return undefined as unknown as T;
   }
 }
@@ -68,21 +130,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export const apiClient = {
   get: async <T>(path: string, params: Record<string, unknown> = {}) => {
     const query = buildQuery(params);
-    // log the request for debugging
     try {
       console.debug('[apiClient] GET', `${API_BASE_URL}${path}${query}`);
     } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'GET',
+      headers: buildHeaders(path, {}, false),
       cache: 'no-store',
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 
   post: async <T>(
     path: string,
     body?: unknown,
     params: Record<string, unknown> = {},
+    extraHeaders: Record<string, string> = {},
   ) => {
     const query = buildQuery(params);
     try {
@@ -90,12 +153,10 @@ export const apiClient = {
     } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(path, extraHeaders),
       body: body ? JSON.stringify(body) : undefined,
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 
   patch: async <T>(
@@ -109,12 +170,10 @@ export const apiClient = {
     } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(path),
       body: body ? JSON.stringify(body) : undefined,
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 
   put: async <T>(
@@ -128,12 +187,10 @@ export const apiClient = {
     } catch {}
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(path),
       body: body ? JSON.stringify(body) : undefined,
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 
   delete: async <T>(
@@ -143,8 +200,9 @@ export const apiClient = {
     const query = buildQuery(params);
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'DELETE',
+      headers: buildHeaders(path, {}, false),
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 
   postMultipart: async <T>(
@@ -155,9 +213,9 @@ export const apiClient = {
     const query = buildQuery(params);
     const res = await fetch(`${API_BASE_URL}${path}${query}`, {
       method: 'POST',
+      headers: buildHeaders(path, {}, false),
       body,
     });
-    return handleResponse<T>(res);
+    return handleResponse<T>(res, path);
   },
 };
-

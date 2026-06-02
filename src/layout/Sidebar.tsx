@@ -107,6 +107,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </span>
             Importação
           </NavLink>
+
+          <span className="mt-4 mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
+            Vendas
+          </span>
+
+          <NavLink
+            to="/orders"
+            onClick={handleNavClick}
+            className={({ isActive }) =>
+              `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
+            }
+          >
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 text-sm dark:bg-amber-500/15 dark:text-amber-300">
+              📦
+            </span>
+            Pedidos
+          </NavLink>
         </nav>
 
         <div className="mt-4 rounded-xl border border-edge bg-surface-alt p-3 text-xs text-muted">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { UserMenu } from '../components/auth/UserMenu';
 
 type TopbarProps = {
   onMenuToggle: () => void;
@@ -54,24 +55,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
 
-        <div className="hidden items-center gap-2 rounded-full border border-edge bg-surface px-3 py-1.5 sm:flex">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-rose-300 text-[11px] font-semibold text-white">
-            L
-          </span>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-heading">
-              Operador
-            </span>
-            <span className="text-[10px] text-faint">
-              Gerenciamento de catálogo
-            </span>
-          </div>
-        </div>
-
-        {/* Compact avatar — mobile only */}
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-rose-300 text-[11px] font-semibold text-white sm:hidden">
-          L
-        </span>
+        <UserMenu />
       </div>
     </header>
   );
