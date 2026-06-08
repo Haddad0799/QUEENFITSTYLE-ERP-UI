@@ -1,4 +1,5 @@
 import type { OrderDetailsDTO, OrderSummaryDTO } from '../../types/orders';
+import { FlagIcon } from '../icons';
 
 type Props = {
   open: boolean;
@@ -35,7 +36,7 @@ export function DeliverOrderDialog({
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
-            🏁
+            <FlagIcon className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold text-heading">
             Marcar como entregue #{order.orderId}

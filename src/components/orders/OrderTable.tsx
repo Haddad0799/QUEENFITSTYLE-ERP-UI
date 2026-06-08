@@ -4,6 +4,15 @@ import { formatBRL, formatDateShort, formatPhone } from '../../lib/format';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { ReservationCountdown } from './ReservationCountdown';
 import { ActionsMenu, type ActionItem } from './ActionsMenu';
+import {
+  CheckIcon,
+  ClockIcon,
+  FlagIcon,
+  InboxIcon,
+  MapPinIcon,
+  RotateCcwIcon,
+  XIcon,
+} from '../icons';
 
 type Props = {
   items: OrderSummaryDTO[];
@@ -43,7 +52,7 @@ const buildActions = (
     actions.push({
       key: 'confirm',
       label: 'Confirmar pagamento',
-      icon: '✓',
+      icon: CheckIcon,
       onSelect: () => onConfirm(order),
     });
   }
@@ -51,7 +60,7 @@ const buildActions = (
     actions.push({
       key: 'cancel',
       label: 'Cancelar pedido',
-      icon: '✕',
+      icon: XIcon,
       destructive: true,
       onSelect: () => onCancel(order),
     });
@@ -60,7 +69,7 @@ const buildActions = (
     actions.push({
       key: 'expire',
       label: 'Expirar pedido',
-      icon: '⏱',
+      icon: ClockIcon,
       onSelect: () => onExpire(order),
     });
   }
@@ -68,7 +77,7 @@ const buildActions = (
     actions.push({
       key: 'deliver',
       label: 'Marcar como entregue',
-      icon: '🏁',
+      icon: FlagIcon,
       onSelect: () => onDeliver(order),
     });
   }
@@ -76,7 +85,7 @@ const buildActions = (
     actions.push({
       key: 'return',
       label: 'Registrar devolução',
-      icon: '↩',
+      icon: RotateCcwIcon,
       onSelect: () => onReturn(order),
     });
   }
@@ -144,8 +153,8 @@ export function OrderTable({
                   className="px-4 py-10 text-center text-xs text-muted"
                 >
                   <div className="mx-auto flex max-w-xs flex-col items-center gap-2">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-base text-faint">
-                      📭
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-faint">
+                      <InboxIcon className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-medium text-heading">
                       Nenhum pedido encontrado
@@ -184,8 +193,9 @@ export function OrderTable({
                     <div className="flex flex-col gap-0.5">
                       <span>{order.customerName}</span>
                       {order.deliveryAddress?.city && (
-                        <span className="text-[11px] text-faint">
-                          📍 {[order.deliveryAddress.city, order.deliveryAddress.state]
+                        <span className="inline-flex items-center gap-1 text-[11px] text-faint">
+                          <MapPinIcon className="h-3 w-3 flex-shrink-0" />
+                          {[order.deliveryAddress.city, order.deliveryAddress.state]
                             .filter(Boolean)
                             .join(' / ')}
                         </span>
@@ -256,8 +266,8 @@ export function OrderTable({
         {isEmpty && (
           <div className="px-4 py-10 text-center">
             <div className="mx-auto flex max-w-xs flex-col items-center gap-2">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-base text-faint">
-                📭
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-faint">
+                <InboxIcon className="h-5 w-5" />
               </span>
               <span className="text-sm font-medium text-heading">
                 Nenhum pedido encontrado
@@ -289,8 +299,9 @@ export function OrderTable({
                   {formatPhone(order.customerPhone)} · {order.itemsCount} item(ns)
                 </span>
                 {order.deliveryAddress?.city && (
-                  <span className="text-[11px] text-faint">
-                    📍 {[order.deliveryAddress.city, order.deliveryAddress.state]
+                  <span className="inline-flex items-center gap-1 text-[11px] text-faint">
+                    <MapPinIcon className="h-3 w-3 flex-shrink-0" />
+                    {[order.deliveryAddress.city, order.deliveryAddress.state]
                       .filter(Boolean)
                       .join(' / ')}
                   </span>

@@ -1,5 +1,6 @@
 import type { OrderDeliveryAddressDTO } from '../../types/orders';
 import { formatCep } from '../../lib/format';
+import { PackageIcon } from '../icons';
 
 type Props = {
   address: OrderDeliveryAddressDTO | null | undefined;
@@ -22,7 +23,7 @@ export function OrderDeliveryAddressCard({ address }: Props) {
         <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           Endereço de entrega
         </h2>
-        <span className="text-sm">📦</span>
+        <PackageIcon className="h-4 w-4 text-muted" />
       </header>
 
       {isEmpty ? (

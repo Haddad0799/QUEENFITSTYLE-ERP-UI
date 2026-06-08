@@ -3,76 +3,100 @@
 /* Class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── Light palette (default) ─── */
+/* ─── Light palette (default) — QueenFitStyle terracota ─── */
 :root {
-  --brand: #db2777;
-  --brand-hover: #be185d;
-  --brand-soft: #fdf2f8;
-  --brand-muted: #fce7f3;
+  --brand: #a0673a;          /* terracota — único acento quente */
+  --brand-hover: #7a4e2b;    /* terracota-dark */
+  --brand-soft: #f4ece4;     /* creme suave — chips e estado ativo */
+  --brand-muted: #ead9cc;
   --on-brand: #ffffff;
 
-  --base: #f9fafb;
+  --base: #f7f7f8;           /* cinza claro neutro */
   --surface: #ffffff;
   --surface-alt: #f3f4f6;
   --surface-input: #ffffff;
 
-  --edge: #e5e7eb;
+  --edge: #e5e7eb;           /* cinza neutro */
   --edge-strong: #d1d5db;
   --edge-subtle: #f3f4f6;
 
-  --heading: #111827;
+  --heading: #111827;        /* grafite */
   --strong: #1f2937;
   --body: #374151;
   --label: #4b5563;
   --muted: #6b7280;
   --faint: #9ca3af;
 
-  --success: #166534;
-  --success-soft: #dcfce7;
-  --success-edge: rgba(34, 197, 94, 0.4);
-  --danger: #991b1b;
-  --danger-soft: #fee2e2;
-  --danger-edge: rgba(220, 38, 38, 0.4);
-  --danger-action: #dc2626;
-  --warning: #9a3412;
-  --warning-soft: #ffedd5;
-  --warning-edge: rgba(249, 115, 22, 0.4);
+  --success: #3b6d11;
+  --success-soft: #eaf3de;
+  --success-edge: rgba(59, 109, 17, 0.4);
+  --danger: #a32d2d;
+  --danger-soft: #fcebeb;
+  --danger-edge: rgba(163, 45, 45, 0.4);
+  --danger-action: #b83232;
+  --warning: #854f0b;
+  --warning-soft: #faeeda;
+  --warning-edge: rgba(133, 79, 11, 0.4);
+  --info: #185fa5;
+  --info-soft: #e6f1fb;
+  --info-edge: rgba(24, 95, 165, 0.4);
+
+  /* Sidebar — clara (creme), combina com o disco creme da logo */
+  --sidebar: #faf4ef;
+  --sidebar-hover: #f2e8e0;
+  --sidebar-active: #a0673a;
+  --sidebar-text: #3a2a1e;
+  --sidebar-muted: #7a4e2b;
+  --sidebar-border: #e7dccf;
+  --sidebar-on-active: #faf4ef;
 }
 
-/* ─── Dark palette ─── */
+/* ─── Dark palette — QueenFitStyle terracota ─── */
 .dark {
-  --brand: #ec4899;
-  --brand-hover: #db2777;
-  --brand-soft: rgba(136, 19, 55, 0.2);
-  --brand-muted: rgba(136, 19, 55, 0.3);
-  --on-brand: #030712;
+  --brand: #c9956a;          /* cobre — acento mais claro sobre fundo escuro */
+  --brand-hover: #b3825a;
+  --brand-soft: rgba(201, 149, 106, 0.16);
+  --brand-muted: rgba(201, 149, 106, 0.26);
+  --on-brand: #1a1410;
 
-  --base: #030712;
-  --surface: #111827;
-  --surface-alt: #1f2937;
-  --surface-input: #111827;
+  --base: #0a0a0b;           /* cinza neutro quase preto */
+  --surface: #18181b;
+  --surface-alt: #27272a;
+  --surface-input: #18181b;
 
-  --edge: #374151;
-  --edge-strong: #4b5563;
-  --edge-subtle: #1f2937;
+  --edge: #3f3f46;
+  --edge-strong: #52525b;
+  --edge-subtle: #27272a;
 
-  --heading: #f9fafb;
-  --strong: #f3f4f6;
-  --body: #e5e7eb;
-  --label: #d1d5db;
-  --muted: #9ca3af;
-  --faint: #6b7280;
+  --heading: #fafafa;
+  --strong: #f4f4f5;
+  --body: #e4e4e7;
+  --label: #d4d4d8;
+  --muted: #a1a1aa;
+  --faint: #71717a;
 
-  --success: #4ade80;
-  --success-soft: rgba(20, 83, 45, 0.3);
-  --success-edge: rgba(74, 222, 128, 0.4);
-  --danger: #f87171;
-  --danger-soft: rgba(127, 29, 29, 0.3);
-  --danger-edge: rgba(248, 113, 113, 0.4);
-  --danger-action: #ef4444;
-  --warning: #fb923c;
-  --warning-soft: rgba(124, 45, 18, 0.3);
-  --warning-edge: rgba(251, 146, 60, 0.4);
+  --success: #8db861;
+  --success-soft: rgba(59, 109, 17, 0.25);
+  --success-edge: rgba(141, 184, 97, 0.4);
+  --danger: #e08585;
+  --danger-soft: rgba(163, 45, 45, 0.25);
+  --danger-edge: rgba(224, 133, 133, 0.4);
+  --danger-action: #d45f5f;
+  --warning: #d9a24e;
+  --warning-soft: rgba(133, 79, 11, 0.28);
+  --warning-edge: rgba(217, 162, 78, 0.4);
+  --info: #6ba6dc;
+  --info-soft: rgba(24, 95, 165, 0.25);
+  --info-edge: rgba(107, 166, 220, 0.4);
+
+  /* Sidebar — superfície escura coerente com o resto no tema dark */
+  --sidebar: #1a1410;
+  --sidebar-hover: #2a1f17;
+  --sidebar-active: #a0673a;
+  --sidebar-text: #faf4ef;
+  --sidebar-muted: #c9956a;
+  --sidebar-border: #3d2d20;
+  --sidebar-on-active: #faf4ef;
 }
 
 /* ─── Tailwind theme tokens ─── */
@@ -109,6 +133,17 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-warning-edge: var(--warning-edge);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-edge: var(--info-edge);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-on-active: var(--sidebar-on-active);
 }
 
 /* ─── Base styles ─── */

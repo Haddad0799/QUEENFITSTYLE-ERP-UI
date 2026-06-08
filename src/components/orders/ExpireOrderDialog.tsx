@@ -1,4 +1,5 @@
 import type { OrderDetailsDTO, OrderSummaryDTO } from '../../types/orders';
+import { ClockIcon } from '../icons';
 
 type Props = {
   open: boolean;
@@ -35,7 +36,7 @@ export function ExpireOrderDialog({
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200">
-            ⏱
+            <ClockIcon className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold text-heading">
             Expirar pedido #{order.orderId}

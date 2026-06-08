@@ -16,6 +16,14 @@ import {
   useOrderActions,
 } from '../hooks/orders/useOrderActions';
 import { useToast } from '../components/toast/ToastProvider';
+import {
+  CheckIcon,
+  ClockIcon,
+  FlagIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  XIcon,
+} from '../components/icons';
 
 export function OrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -220,7 +228,7 @@ export function OrderDetailsPage() {
             }}
             className="inline-flex items-center gap-2 rounded-xl border border-edge bg-surface-alt px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:bg-surface active:scale-[0.98]"
           >
-            ↻ Atualizar
+            <RefreshCwIcon className="h-3.5 w-3.5" /> Atualizar
           </button>
 
           {canConfirmPayment && (
@@ -231,7 +239,7 @@ export function OrderDetailsPage() {
                 onClick={() => setShowExpireDialog(true)}
                 className="inline-flex items-center gap-2 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:border-gray-400 active:scale-[0.98] disabled:opacity-50"
               >
-                ⏱ Expirar pedido
+                <ClockIcon className="h-3.5 w-3.5" /> Expirar pedido
               </button>
               <button
                 type="button"
@@ -239,7 +247,7 @@ export function OrderDetailsPage() {
                 onClick={() => setShowCancelDialog(true)}
                 className="inline-flex items-center gap-2 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:border-danger-action hover:text-danger active:scale-[0.98] disabled:opacity-50"
               >
-                ✕ Cancelar pedido
+                <XIcon className="h-3.5 w-3.5" /> Cancelar pedido
               </button>
               <button
                 type="button"
@@ -247,7 +255,7 @@ export function OrderDetailsPage() {
                 onClick={() => setShowConfirmDialog(true)}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-50"
               >
-                ✓ Confirmar pagamento
+                <CheckIcon className="h-3.5 w-3.5" /> Confirmar pagamento
               </button>
             </>
           )}
@@ -259,7 +267,7 @@ export function OrderDetailsPage() {
               onClick={() => setShowReturnDialog(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:border-orange-400 hover:text-orange-600 active:scale-[0.98] disabled:opacity-50"
             >
-              ↩ Registrar devolução
+              <RotateCcwIcon className="h-3.5 w-3.5" /> Registrar devolução
             </button>
           )}
 
@@ -270,7 +278,7 @@ export function OrderDetailsPage() {
               onClick={() => setShowDeliverDialog(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-50"
             >
-              🏁 Marcar como entregue
+              <FlagIcon className="h-3.5 w-3.5" /> Marcar como entregue
             </button>
           )}
         </div>
@@ -317,7 +325,7 @@ export function OrderDetailsPage() {
           >
             <div className="mb-1 flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
-                ✓
+                <CheckIcon className="h-3.5 w-3.5" />
               </span>
               <h3 className="text-sm font-semibold text-heading">
                 Confirmar pagamento #{order.orderId}

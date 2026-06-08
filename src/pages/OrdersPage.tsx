@@ -10,6 +10,7 @@ import { ReturnOrderDialog } from '../components/orders/ReturnOrderDialog';
 import { useOrders } from '../hooks/orders/useOrders';
 import { useToast } from '../components/toast/ToastProvider';
 import { ordersService } from '../services/orders';
+import { CheckIcon, RefreshCwIcon } from '../components/icons';
 import type {
   OrderListFilters,
   OrderStatus,
@@ -250,7 +251,7 @@ export function OrdersPage() {
             onClick={() => refetch()}
             className="inline-flex items-center gap-2 rounded-xl border border-edge bg-surface-alt px-3.5 py-2.5 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface active:scale-[0.98]"
           >
-            <span className="text-base leading-none">↻</span>
+            <RefreshCwIcon className="h-4 w-4" />
             Atualizar
           </button>
         </div>
@@ -328,7 +329,7 @@ export function OrdersPage() {
           >
             <div className="mb-1 flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
-                ✓
+                <CheckIcon className="h-3.5 w-3.5" />
               </span>
               <h3 className="text-sm font-semibold text-heading">
                 Confirmar venda #{confirmTarget.orderId}

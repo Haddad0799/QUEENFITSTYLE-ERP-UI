@@ -4,10 +4,50 @@ const navItemBase =
   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200';
 
 const navItemInactive =
-  'text-label hover:bg-surface-alt hover:text-heading active:scale-[0.98]';
+  'text-sidebar-text/75 hover:bg-sidebar-hover hover:text-sidebar-text active:scale-[0.98]';
 
 const navItemActive =
-  'bg-brand-soft text-brand shadow-sm';
+  'bg-sidebar-active text-sidebar-on-active shadow-sm';
+
+const iconClass = 'h-[18px] w-[18px] flex-shrink-0';
+
+// Ícones de linha minimalistas (Lucide), herdam a cor do item via currentColor
+function ProductsIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+    </svg>
+  );
+}
+
+function CategoriesIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ImportIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" x2="12" y1="15" y2="3" />
+    </svg>
+  );
+}
+
+function OrdersIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
 
 type SidebarProps = {
   open: boolean;
@@ -32,31 +72,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       {/* Sidebar panel */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col border-r border-edge bg-surface px-4 py-5 transition-transform duration-300 ease-out lg:static lg:z-auto lg:w-64 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 transition-transform duration-300 ease-out lg:static lg:z-auto lg:w-64 lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="mb-8 flex items-center justify-between px-2">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-pink-500 to-rose-300 text-white font-bold shadow-lg shadow-pink-500/20">
-              QF
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold tracking-wide text-heading">
-                QueenFitStyle
-              </span>
-              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
-                Backoffice
-              </span>
-            </div>
-          </div>
+        <div className="relative mb-8 flex items-center justify-center px-2 pt-1">
+          <img
+            src="/logo.png"
+            alt="QueenFitStyle"
+            className="h-20 w-20 object-contain"
+          />
 
           {/* Close button — mobile only */}
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-alt hover:text-heading lg:hidden"
+            className="absolute right-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text lg:hidden"
             aria-label="Fechar menu"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -64,7 +96,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
+          <span className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-sidebar-muted">
             Catálogo
           </span>
 
@@ -76,9 +108,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
             }
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand-soft text-brand text-sm">
-              🛒
-            </span>
+            <ProductsIcon />
             Produtos
           </NavLink>
 
@@ -89,9 +119,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
             }
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 text-sm dark:bg-blue-500/15 dark:text-blue-400">
-              🏷️
-            </span>
+            <CategoriesIcon />
             Categorias
           </NavLink>
 
@@ -102,13 +130,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
             }
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 text-sm dark:bg-emerald-500/15 dark:text-emerald-400">
-              📥
-            </span>
+            <ImportIcon />
             Importação
           </NavLink>
 
-          <span className="mt-4 mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-faint">
+          <span className="mt-4 mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-sidebar-muted">
             Vendas
           </span>
 
@@ -119,27 +145,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               `${navItemBase} ${isActive ? navItemActive : navItemInactive}`
             }
           >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600 text-sm dark:bg-amber-500/15 dark:text-amber-300">
-              📦
-            </span>
+            <OrdersIcon />
             Pedidos
           </NavLink>
         </nav>
-
-        <div className="mt-4 rounded-xl border border-edge bg-surface-alt p-3 text-xs text-muted">
-          <div className="mb-1 flex items-center justify-between text-[11px]">
-            <span className="font-medium text-label">Ambiente</span>
-            <span className="rounded-full bg-brand-soft px-2 py-[2px] text-[10px] font-semibold uppercase tracking-[0.16em] text-brand">
-              Local
-            </span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-muted">
-            API em <span className="font-semibold text-heading">localhost</span>{' '}
-            porta <span className="font-semibold text-heading">8080</span>.
-          </p>
-        </div>
       </aside>
     </>
   );
 }
-

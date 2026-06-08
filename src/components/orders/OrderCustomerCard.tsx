@@ -1,5 +1,6 @@
 import type { OrderCustomerDTO } from '../../types/orders';
 import { formatPhone } from '../../lib/format';
+import { MapPinIcon, MessageCircleIcon } from '../icons';
 
 type Props = {
   customer: OrderCustomerDTO;
@@ -33,12 +34,12 @@ export function OrderCustomerCard({ customer }: Props) {
             rel="noreferrer noopener"
             className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
           >
-            <span>💬</span> Abrir WhatsApp
+            <MessageCircleIcon className="h-3.5 w-3.5" /> Abrir WhatsApp
           </a>
         )}
       </header>
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-rose-300 text-sm font-semibold text-white shadow-lg shadow-pink-500/20">
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#a0673a] to-[#c9956a] text-sm font-semibold text-white shadow-lg shadow-black/20">
           {customer.name?.charAt(0)?.toUpperCase() ?? '?'}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -49,7 +50,9 @@ export function OrderCustomerCard({ customer }: Props) {
             {formatPhone(customer.phone)}
           </span>
           {customer.city && (
-            <span className="text-[11px] text-muted">📍 {customer.city}</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+              <MapPinIcon className="h-3 w-3 flex-shrink-0" /> {customer.city}
+            </span>
           )}
         </div>
       </div>

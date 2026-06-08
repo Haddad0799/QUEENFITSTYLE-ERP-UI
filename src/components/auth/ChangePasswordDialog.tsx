@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { authService } from '../../services/auth';
 import { useToast } from '../toast/ToastProvider';
+import { LockIcon } from '../icons';
 
 type Props = {
   open: boolean;
@@ -87,7 +88,7 @@ export function ChangePasswordDialog({ open, onClose }: Props) {
       >
         <div className="mb-3 flex items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-soft text-brand">
-            🔒
+            <LockIcon className="h-3.5 w-3.5" />
           </span>
           <div className="flex flex-col">
             <h3 className="text-sm font-semibold text-heading">
@@ -136,7 +137,7 @@ export function ChangePasswordDialog({ open, onClose }: Props) {
               type="checkbox"
               checked={showPasswords}
               onChange={(e) => setShowPasswords(e.target.checked)}
-              className="h-3.5 w-3.5 cursor-pointer accent-pink-500"
+              className="h-3.5 w-3.5 cursor-pointer accent-[#a0673a]"
             />
             Mostrar senhas
           </label>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { UserMenu } from '../components/auth/UserMenu';
+import { MoonIcon, SunIcon } from '../components/icons';
 
 type TopbarProps = {
   onMenuToggle: () => void;
@@ -52,7 +53,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           aria-label="Alternar tema claro/escuro"
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-edge-strong bg-surface-alt text-sm text-heading transition-colors hover:bg-surface-alt/80"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
         </button>
 
         <UserMenu />

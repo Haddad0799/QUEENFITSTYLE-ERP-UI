@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { CheckIcon } from '../icons';
 
 export type ToastVariant = 'success' | 'error' | 'info';
 
@@ -36,8 +37,8 @@ const VARIANT_STYLES: Record<ToastVariant, string> = {
     'border-edge bg-surface text-heading dark:bg-surface',
 };
 
-const VARIANT_ICON: Record<ToastVariant, string> = {
-  success: '✓',
+const VARIANT_ICON: Record<ToastVariant, ReactNode> = {
+  success: <CheckIcon className="h-3 w-3" />,
   error: '!',
   info: 'i',
 };

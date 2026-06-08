@@ -2,6 +2,14 @@ import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 import { downloadImportTemplate } from '../lib/generate-import-template';
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  DownloadIcon,
+  FileTextIcon,
+  SettingsIcon,
+  UploadIcon,
+} from '../components/icons';
 import type {
   ImportProductResult,
   ImportProductStatus,
@@ -130,7 +138,7 @@ export function ProductImportPage() {
       <div className="rounded-xl border border-edge bg-surface p-5">
         <div className="mb-4">
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-heading">
-            <span>📄</span> Como usar
+            <FileTextIcon className="h-4 w-4 text-muted" /> Como usar
           </h2>
           <ol className="list-inside list-decimal space-y-1 text-xs leading-relaxed text-muted">
             <li>Baixe o template</li>
@@ -141,7 +149,7 @@ export function ProductImportPage() {
 
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-            <span>⚠️</span> Atenção
+            <AlertTriangleIcon className="h-4 w-4" /> Atenção
           </h3>
           <ul className="list-inside list-disc space-y-1 text-xs text-amber-700 dark:text-amber-300">
             <li>Utilize o template fornecido (estrutura obrigatória)</li>
@@ -152,7 +160,7 @@ export function ProductImportPage() {
 
         <div className="mb-4 rounded-lg border border-edge bg-surface-alt p-3">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-label">
-            <span>⚙️</span> O sistema faz automaticamente
+            <SettingsIcon className="h-4 w-4" /> O sistema faz automaticamente
           </h3>
           <ul className="list-inside list-disc space-y-1 text-xs text-muted">
             <li>Agrupa SKUs no mesmo produto (nome + categoria)</li>
@@ -165,7 +173,7 @@ export function ProductImportPage() {
 
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-500/30 dark:bg-red-500/10">
           <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300">
-            <span>❗</span> Em caso de erro
+            <AlertCircleIcon className="h-4 w-4" /> Em caso de erro
           </h3>
           <ul className="list-inside list-disc space-y-1 text-xs text-red-700 dark:text-red-300">
             <li>Produtos com erro não serão importados</li>
@@ -174,7 +182,7 @@ export function ProductImportPage() {
         </div>
 
         <div className="flex flex-col items-start gap-3 rounded-xl border border-edge bg-surface-alt p-3 sm:flex-row sm:items-center">
-          <span className="text-xl">📥</span>
+          <DownloadIcon className="h-5 w-5 flex-shrink-0 text-brand" />
           <div className="flex-1">
             <p className="text-xs font-semibold text-heading">Template</p>
           </div>
@@ -204,7 +212,7 @@ export function ProductImportPage() {
                 : 'border-edge bg-surface-alt hover:border-brand/40'
             }`}
           >
-            <span className="text-3xl">📄</span>
+            <FileTextIcon className="h-8 w-8 text-faint" />
             {file ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-heading">
@@ -258,7 +266,7 @@ export function ProductImportPage() {
               </>
             ) : (
               <>
-                <span className="text-base leading-none">📤</span>
+                <UploadIcon className="h-4 w-4" />
                 Importar
               </>
             )}
@@ -398,7 +406,7 @@ export function ProductImportPage() {
               onClick={handleReset}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-edge bg-surface-alt px-3.5 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface active:scale-[0.98] sm:h-auto sm:py-2"
             >
-              <span className="text-base leading-none">📤</span>
+              <UploadIcon className="h-4 w-4" />
               Importar outro arquivo
             </button>
             <Link

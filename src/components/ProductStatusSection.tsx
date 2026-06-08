@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { InfoIcon } from './icons';
 
 interface ProductStatusSectionProps {
   status: 'DRAFT' | 'READY_FOR_SALE' | 'PUBLISHED' | 'INACTIVE' | 'ARCHIVED';
@@ -76,7 +77,7 @@ export const ProductStatusSection: React.FC<ProductStatusSectionProps> = ({
       )}
       {isPublished && (
         <div className={INFO_BOX_CLASSES}>
-          <span role="img" aria-label="info" className="text-base">ℹ️</span>
+          <InfoIcon className="h-4 w-4 flex-shrink-0" />
           <span>
             Este produto está publicado. Alterações nos dados, preços e imagens serão refletidas automaticamente no catálogo público.
           </span>

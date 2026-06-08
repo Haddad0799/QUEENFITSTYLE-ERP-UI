@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { LightbulbIcon } from '../components/icons';
 
 type LocationState = { from?: string } | null;
 
@@ -36,15 +37,17 @@ export function LoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-base px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-300 text-lg font-bold text-white shadow-lg shadow-pink-500/30">
-            QF
-          </div>
+          <img
+            src="/logo.png"
+            alt="QueenFitStyle"
+            className="h-24 w-24 object-contain"
+          />
           <div>
-            <h1 className="text-lg font-semibold text-heading">
-              QueenFitStyle Backoffice
+            <h1 className="text-sm font-semibold text-heading">
+              Painel administrativo
             </h1>
             <p className="text-xs text-muted">
-              Entre com suas credenciais para acessar o painel.
+              Entre para gerenciar a loja
             </p>
           </div>
         </div>
@@ -116,7 +119,8 @@ export function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-[11px] leading-relaxed text-muted">
-          💡 <span className="font-medium text-label">Primeiro acesso?</span>{' '}
+          <LightbulbIcon className="mr-1 inline h-3.5 w-3.5 align-text-bottom" />
+          <span className="font-medium text-label">Primeiro acesso?</span>{' '}
           Após entrar com a senha temporária, vá em
           <br />
           <span className="font-medium text-heading">

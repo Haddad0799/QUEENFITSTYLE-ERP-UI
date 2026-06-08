@@ -9,6 +9,7 @@ import { apiClient } from '../lib/api-client';
 import { extractCategories, getLeafCategoryOptions } from '../lib/category-utils';
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { ProductStatusSection } from '../components/ProductStatusSection';
+import { XIcon } from '../components/icons';
 import type {
   ProductDetailsDTO,
   ProductStatus,
@@ -1409,9 +1410,9 @@ export function ProductDetailsPage() {
                   </h3>
                   <button
                     onClick={() => setShowPrimaryPicker(false)}
-                    className="text-xs text-muted hover:text-heading"
+                    className="text-muted hover:text-heading"
                   >
-                    ✕
+                    <XIcon className="h-4 w-4" />
                   </button>
                 </div>
 
@@ -1611,7 +1612,7 @@ export function ProductDetailsPage() {
                           return selectableIds.length > 0 && selectableIds.every((sid) => selectedSkuIds.has(sid));
                         })()}
                         onChange={toggleSelectAllSkus}
-                        className="h-3.5 w-3.5 cursor-pointer accent-pink-500"
+                        className="h-3.5 w-3.5 cursor-pointer accent-[#a0673a]"
                         title="Selecionar todos"
                       />
                     </th>
@@ -1644,7 +1645,7 @@ export function ProductDetailsPage() {
                               disabled={isPublished}
                               onChange={(e) => toggleSkuSelection(sku.id, e)}
                               onClick={(e) => e.stopPropagation()}
-                              className="h-3.5 w-3.5 cursor-pointer accent-pink-500 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="h-3.5 w-3.5 cursor-pointer accent-[#a0673a] disabled:cursor-not-allowed disabled:opacity-40"
                               title={isPublished ? 'SKUs publicados não podem ser excluídos' : undefined}
                             />
                           </td>
@@ -2110,7 +2111,7 @@ export function ProductDetailsPage() {
                             type="checkbox"
                             checked={selectedImageIds.has(img.id)}
                             onChange={() => toggleImageSelection(img.id)}
-                            className="absolute top-0.5 left-0.5 z-10 h-3.5 w-3.5 cursor-pointer accent-pink-500"
+                            className="absolute top-0.5 left-0.5 z-10 h-3.5 w-3.5 cursor-pointer accent-[#a0673a]"
                           />
                           <span className="absolute -top-1.5 -right-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-surface-alt text-[8px] font-bold text-label ring-1 ring-edge-strong">
                             {idx + 1}
@@ -3000,9 +3001,9 @@ export function ProductDetailsPage() {
             {/* Close button — top-right of image */}
             <button
               onClick={closeLightbox}
-              className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-base text-white backdrop-blur transition hover:bg-white/20"
+              className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
             >
-              ✕
+              <XIcon className="h-4 w-4" />
             </button>
 
             <img

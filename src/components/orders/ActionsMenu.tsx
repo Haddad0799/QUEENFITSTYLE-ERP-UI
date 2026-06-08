@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ComponentType } from 'react';
 
 export type ActionItem = {
   key: string;
   label: string;
-  icon?: string;
+  icon?: ComponentType<{ className?: string }>;
   destructive?: boolean;
   disabled?: boolean;
   onSelect: () => void;
@@ -71,29 +72,30 @@ export function ActionsMenu({ items, label = 'Mais ações' }: Props) {
           className="absolute right-0 top-full z-40 mt-1 w-44 overflow-hidden rounded-xl border border-edge bg-surface py-1 shadow-xl shadow-black/10"
           onClick={(e) => e.stopPropagation()}
         >
-          {items.map((item) => (
-            <button
-              key={item.key}
-              role="menuitem"
-              type="button"
-              disabled={item.disabled}
-              onClick={() => {
-                if (item.disabled) return;
-                setOpen(false);
-                item.onSelect();
-              }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-medium transition ${
-                item.destructive
-                  ? 'text-danger hover:bg-danger-soft'
-                  : 'text-heading hover:bg-surface-alt'
-              } disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent`}
-            >
-              {item.icon && (
-                <span className="text-sm leading-none">{item.icon}</span>
-              )}
-              {item.label}
-            </button>
-          ))}
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                role="menuitem"
+                type="button"
+                disabled={item.disabled}
+                onClick={() => {
+                  if (item.disabled) return;
+                  setOpen(false);
+                  item.onSelect();
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-medium transition ${
+                  item.destructive
+                    ? 'text-danger hover:bg-danger-soft'
+                    : 'text-heading hover:bg-surface-alt'
+                } disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent`}
+              >
+                {Icon && <Icon className="h-3.5 w-3.5 flex-shrink-0" />}
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { OrderDetailsDTO, OrderSummaryDTO } from '../../types/orders';
+import { RotateCcwIcon } from '../icons';
 
 type Props = {
   open: boolean;
@@ -42,7 +43,7 @@ export function ReturnOrderDialog({
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300">
-            ↩
+            <RotateCcwIcon className="h-3.5 w-3.5" />
           </span>
           <h3 className="text-sm font-semibold text-heading">
             Registrar devolução #{order.orderId}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import type { ComponentType } from 'react';
 import type { OrderListFilters, OrderStatus } from '../../types/orders';
 import { ORDER_STATUS_LABEL } from './OrderStatusBadge';
+import { PhoneIcon, TagIcon, UserIcon } from '../icons';
 
 type Props = {
   value: OrderListFilters;
@@ -134,21 +136,21 @@ export function OrderFilters({
           placeholder="Nome do cliente"
           value={customerName}
           onChange={setCustomerName}
-          icon="👤"
+          icon={UserIcon}
         />
         <FilterInput
           label="Telefone"
           placeholder="Ex: 11999998888"
           value={phone}
           onChange={setPhone}
-          icon="📞"
+          icon={PhoneIcon}
         />
         <FilterInput
           label="SKU"
           placeholder="Código do SKU"
           value={skuCode}
           onChange={setSkuCode}
-          icon="🏷️"
+          icon={TagIcon}
         />
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
@@ -198,13 +200,13 @@ function FilterInput({
   placeholder,
   value,
   onChange,
-  icon,
+  icon: Icon,
 }: {
   label: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
-  icon: string;
+  icon: ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -218,8 +220,8 @@ function FilterInput({
           placeholder={placeholder}
           className="h-8 w-full rounded-lg border border-edge-strong bg-surface-input pl-7 pr-2 text-[11px] text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25"
         />
-        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] opacity-60">
-          {icon}
+        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-faint">
+          <Icon className="h-3.5 w-3.5" />
         </span>
       </div>
     </div>

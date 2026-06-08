@@ -1,12 +1,28 @@
+import type { ComponentType } from 'react';
 import type {
   OrderTimelineEventDTO,
   OrderTimelineEventType,
 } from '../../types/orders';
 import { formatDateTime } from '../../lib/format';
+import {
+  CheckIcon,
+  CircleIcon,
+  ClockIcon,
+  FlagIcon,
+  MessageCircleIcon,
+  NoteIcon,
+  PackageIcon,
+  RotateCcwIcon,
+  ShoppingCartIcon,
+  TrendingDownIcon,
+  XIcon,
+} from '../icons';
+
+type IconComponent = ComponentType<{ className?: string }>;
 
 type EventMeta = {
   label: string;
-  icon: string;
+  icon: IconComponent;
   dot: string;
   ring: string;
 };
@@ -14,67 +30,67 @@ type EventMeta = {
 const EVENT_META: Record<string, EventMeta> = {
   ORDER_CREATED: {
     label: 'Pedido criado',
-    icon: '🛒',
+    icon: ShoppingCartIcon,
     dot: 'bg-brand text-on-brand',
     ring: 'ring-brand/30',
   },
   WHATSAPP_OPENED: {
     label: 'Cliente redirecionado para o WhatsApp',
-    icon: '💬',
+    icon: MessageCircleIcon,
     dot: 'bg-emerald-500 text-white',
     ring: 'ring-emerald-500/30',
   },
   PAID: {
     label: 'Pagamento confirmado',
-    icon: '✓',
+    icon: CheckIcon,
     dot: 'bg-emerald-500 text-white',
     ring: 'ring-emerald-500/30',
   },
   DELIVERED: {
     label: 'Pedido entregue',
-    icon: '🏁',
+    icon: FlagIcon,
     dot: 'bg-emerald-600 text-white',
     ring: 'ring-emerald-500/30',
   },
   CANCELLED: {
     label: 'Pedido cancelado',
-    icon: '✕',
+    icon: XIcon,
     dot: 'bg-rose-500 text-white',
     ring: 'ring-rose-500/30',
   },
   EXPIRED: {
     label: 'Pedido expirado',
-    icon: '⏱',
+    icon: ClockIcon,
     dot: 'bg-gray-400 text-white dark:bg-gray-500',
     ring: 'ring-gray-400/30',
   },
   RETURNED: {
     label: 'Pedido devolvido',
-    icon: '↩',
+    icon: RotateCcwIcon,
     dot: 'bg-orange-500 text-white',
     ring: 'ring-orange-500/30',
   },
   RESERVATIONS_CONFIRMED: {
     label: 'Reservas confirmadas (estoque baixado)',
-    icon: '📉',
+    icon: TrendingDownIcon,
     dot: 'bg-emerald-600 text-white',
     ring: 'ring-emerald-500/30',
   },
   RESERVATIONS_RELEASED: {
     label: 'Reservas liberadas',
-    icon: '↩',
+    icon: RotateCcwIcon,
     dot: 'bg-blue-500 text-white',
     ring: 'ring-blue-500/30',
   },
   RESERVATIONS_RETURNED: {
     label: 'Estoque reposto',
-    icon: '📦',
+    icon: PackageIcon,
     dot: 'bg-orange-500 text-white',
     ring: 'ring-orange-500/30',
   },
   NOTE_ADDED: {
     label: 'Observação adicionada',
-    icon: '📝',
+    icon: NoteIcon,
     dot: 'bg-surface-alt text-heading',
     ring: 'ring-edge',
   },
@@ -82,7 +98,7 @@ const EVENT_META: Record<string, EventMeta> = {
 
 const FALLBACK_META: EventMeta = {
   label: 'Evento',
-  icon: '•',
+  icon: CircleIcon,
   dot: 'bg-surface-alt text-heading',
   ring: 'ring-edge',
 };
@@ -149,12 +165,13 @@ function TimelineItem({ event }: { event: OrderTimelineEventDTO }) {
     ...FALLBACK_META,
     label: humanize(event.eventType),
   };
+  const Icon = meta.icon;
   return (
     <li className="relative">
       <span
-        className={`absolute -left-[34px] top-0 inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold ring-4 ${meta.dot} ${meta.ring}`}
+        className={`absolute -left-[34px] top-0 inline-flex h-7 w-7 items-center justify-center rounded-full ring-4 ${meta.dot} ${meta.ring}`}
       >
-        {meta.icon}
+        <Icon className="h-3.5 w-3.5" />
       </span>
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium text-heading">{meta.label}</span>

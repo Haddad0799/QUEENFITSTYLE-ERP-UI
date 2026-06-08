@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { apiClient } from '../lib/api-client';
 import { extractCategories } from '../lib/category-utils';
+import { DownloadIcon } from '../components/icons';
 import type {
   PageResponseProductSummaryDTO,
   ProductStatus,
@@ -149,7 +150,7 @@ export function ProductsPage() {
             onClick={() => navigate('/products/import')}
             className="inline-flex items-center gap-2 rounded-xl border border-edge bg-surface-alt px-3.5 py-2.5 text-xs font-semibold text-heading shadow-sm transition hover:bg-surface active:scale-[0.98]"
           >
-            <span className="text-base leading-none">📥</span>
+            <DownloadIcon className="h-4 w-4" />
             Importar
           </button>
           <button
