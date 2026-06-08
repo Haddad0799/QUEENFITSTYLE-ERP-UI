@@ -62,4 +62,20 @@ export const ordersService = {
       {},
       actorHeader(actor),
     ),
+
+  deliver: (orderId: number, actor?: string) =>
+    apiClient.post<OrderActionResultDTO>(
+      `/erp/orders/${orderId}/deliver`,
+      undefined,
+      {},
+      actorHeader(actor),
+    ),
+
+  return: (orderId: number, reason?: string, actor?: string) =>
+    apiClient.post<OrderActionResultDTO>(
+      `/erp/orders/${orderId}/return`,
+      { reason: trim(reason) },
+      {},
+      actorHeader(actor),
+    ),
 };

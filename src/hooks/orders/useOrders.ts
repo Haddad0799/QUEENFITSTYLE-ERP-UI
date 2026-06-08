@@ -19,7 +19,7 @@ type UseOrdersOptions = {
   pollingMs?: number | null;
 };
 
-const POLLABLE_STATUSES: OrderStatus[] = ['WAITING_SELLER_CONFIRMATION'];
+const POLLABLE_STATUSES: OrderStatus[] = ['PENDING_PAYMENT'];
 
 const hasPollableItems = (data: PageResponseOrderSummaryDTO | null) => {
   if (!data) return false;

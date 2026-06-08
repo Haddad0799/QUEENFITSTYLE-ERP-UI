@@ -32,6 +32,8 @@ const patchOrderWithResult = (
   status: result.status,
   confirmedAt: result.confirmedAt ?? order.confirmedAt,
   cancelledAt: result.cancelledAt ?? order.cancelledAt,
+  deliveredAt: result.deliveredAt ?? order.deliveredAt,
+  returnedAt: result.returnedAt ?? order.returnedAt,
 });
 
 export function applyActionResult(
@@ -46,6 +48,8 @@ export function useOrderActions(handlers: Handlers = {}, actor?: string) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isExpiring, setIsExpiring] = useState(false);
+  const [isDelivering, setIsDelivering] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const run = useCallback(
@@ -81,7 +85,7 @@ export function useOrderActions(handlers: Handlers = {}, actor?: string) {
 
   const confirm = useCallback(
     (order: OrderDetailsDTO) =>
-      run(order, 'CONFIRMED', () => ordersService.confirm(order.orderId, actor), setIsConfirming),
+      run(order, 'PAID', () => ordersService.confirm(order.orderId, actor), setIsConfirming),
     [run, actor],
   );
 
@@ -107,14 +111,41 @@ export function useOrderActions(handlers: Handlers = {}, actor?: string) {
     [run, actor],
   );
 
+  const deliver = useCallback(
+    (order: OrderDetailsDTO) =>
+      run(
+        order,
+        'DELIVERED',
+        () => ordersService.deliver(order.orderId, actor),
+        setIsDelivering,
+      ),
+    [run, actor],
+  );
+
+  const returnOrder = useCallback(
+    (order: OrderDetailsDTO, reason?: string) =>
+      run(
+        order,
+        'RETURNED',
+        () => ordersService.return(order.orderId, reason, actor),
+        setIsReturning,
+      ),
+    [run, actor],
+  );
+
   return {
     confirm,
     cancel,
     expire,
+    deliver,
+    returnOrder,
     isConfirming,
     isCancelling,
     isExpiring,
-    isBusy: isConfirming || isCancelling || isExpiring,
+    isDelivering,
+    isReturning,
+    isBusy:
+      isConfirming || isCancelling || isExpiring || isDelivering || isReturning,
     actionError,
     clearError: () => setActionError(null),
   };

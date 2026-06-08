@@ -10,13 +10,12 @@ type Props = {
 };
 
 const STATUS_OPTIONS: OrderStatus[] = [
-  'WAITING_SELLER_CONFIRMATION',
-  'CONFIRMED',
-  'PREPARING',
-  'SHIPPED',
+  'PENDING_PAYMENT',
+  'PAID',
   'DELIVERED',
   'CANCELLED',
   'EXPIRED',
+  'RETURNED',
 ];
 
 /**

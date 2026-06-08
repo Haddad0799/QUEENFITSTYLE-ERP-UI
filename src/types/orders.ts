@@ -1,11 +1,30 @@
 export type OrderStatus =
-  | 'WAITING_SELLER_CONFIRMATION'
-  | 'CONFIRMED'
-  | 'PREPARING'
-  | 'SHIPPED'
+  /** criado — aguardando confirmação manual do pagamento (reserva RESERVED) */
+  | 'PENDING_PAYMENT'
+  /** pagamento confirmado — reserva consumida (estoque baixado) */
+  | 'PAID'
+  /** pedido entregue manualmente */
   | 'DELIVERED'
+  /** cancelado por falta de pagamento — reserva liberada */
   | 'CANCELLED'
-  | 'EXPIRED';
+  /** expirado após 24h sem pagamento — reserva liberada */
+  | 'EXPIRED'
+  /** devolvido após pago/entregue — estoque reposto */
+  | 'RETURNED';
+
+/**
+ * Endereço de entrega do pedido. Todos os campos podem vir ausentes
+ * dependendo do cadastro do cliente, por isso são opcionais/anuláveis.
+ */
+export type OrderDeliveryAddressDTO = {
+  cep: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+};
 
 /**
  * Lista — GET /erp/orders
@@ -17,9 +36,13 @@ export type OrderSummaryDTO = {
   customerPhone: string;
   totalAmount: number;
   itemsCount: number;
+  deliveryAddress: OrderDeliveryAddressDTO | null;
   createdAt: string;
+  /** Momento da confirmação do pagamento (transição PENDING_PAYMENT → PAID). */
   confirmedAt: string | null;
   cancelledAt: string | null;
+  deliveredAt: string | null;
+  returnedAt: string | null;
   expiresAt: string | null;
 };
 
@@ -47,6 +70,7 @@ export type OrderItemDTO = {
   skuCode: string;
   productName: string;
   colorName: string | null;
+  colorHex: string | null;
   sizeLabel: string | null;
   reservationId: string;
   quantity: number;
@@ -64,6 +88,7 @@ export type OrderReservationStatus =
   | 'CONFIRMED'
   | 'RELEASED'
   | 'EXPIRED'
+  | 'RETURNED'
   | (string & {});
 
 export type OrderReservationDTO = {
@@ -82,9 +107,16 @@ export type OrderReservationDTO = {
  */
 export type OrderTimelineEventType =
   | 'ORDER_CREATED'
-  | 'ORDER_CONFIRMED'
-  | 'ORDER_CANCELLED'
-  | 'ORDER_EXPIRED'
+  | 'WHATSAPP_OPENED'
+  | 'PAID'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'EXPIRED'
+  | 'RETURNED'
+  | 'RESERVATIONS_CONFIRMED'
+  | 'RESERVATIONS_RELEASED'
+  | 'RESERVATIONS_RETURNED'
+  | 'NOTE_ADDED'
   | (string & {});
 
 export type OrderTimelineEventDTO = {
@@ -94,6 +126,12 @@ export type OrderTimelineEventDTO = {
   payload: string | null;
   actor: string | null;
   createdAt: string;
+};
+
+export type OrderReservationSummaryDTO = {
+  totalReservedItems: number;
+  expiresInMinutes: number | null;
+  hasExpiredReservations: boolean;
 };
 
 export type OrderDetailsDTO = {
@@ -107,20 +145,27 @@ export type OrderDetailsDTO = {
   expiresAt: string | null;
   confirmedAt: string | null;
   cancelledAt: string | null;
+  deliveredAt: string | null;
+  returnedAt: string | null;
   customer: OrderCustomerDTO;
+  deliveryAddress: OrderDeliveryAddressDTO | null;
   items: OrderItemDTO[];
   reservations: OrderReservationDTO[];
+  reservationSummary: OrderReservationSummaryDTO | null;
   timeline: OrderTimelineEventDTO[];
 };
 
 /**
- * Resposta lightweight retornada por /confirm, /cancel e /expire.
+ * Resposta lightweight retornada por /confirm, /cancel, /expire,
+ * /deliver e /return.
  */
 export type OrderActionResultDTO = {
   orderId: number;
   status: OrderStatus;
   confirmedAt: string | null;
   cancelledAt: string | null;
+  deliveredAt: string | null;
+  returnedAt: string | null;
 };
 
 /**

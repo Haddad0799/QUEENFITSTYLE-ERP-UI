@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryLeafPicker } from '../components/CategoryLeafPicker';
+import {
+  ProductDescriptionField,
+  type ProductAIDescriptionRequest,
+} from '../components/ProductDescriptionField';
 import { apiClient } from '../lib/api-client';
-import { extractCategories } from '../lib/category-utils';
+import {
+  extractCategories,
+  getLeafCategoryOptions,
+} from '../lib/category-utils';
 import type { Category } from '../types/categories';
 
 export function ProductCreatePage() {
@@ -28,6 +35,29 @@ export function ProductCreatePage() {
 
     loadCategories();
   }, []);
+
+  const selectedCategory = useMemo(
+    () =>
+      categoryId
+        ? getLeafCategoryOptions(categories).find(
+            (category) => category.id === Number(categoryId),
+          )
+        : undefined,
+    [categories, categoryId],
+  );
+
+  /**
+   * Brand fixo garante que o backend sempre receba ao menos um atributo
+   * extra além de nome e categoria — atende a regra de validação do
+   * endpoint /erp/products/ai/generate-description.
+   */
+  const descriptionProductData: ProductAIDescriptionRequest = {
+    productName: name,
+    categoryName: selectedCategory?.rootName,
+    subcategoryName: selectedCategory?.name,
+    brand: 'QueenFitStyle',
+    additionalDetails: description,
+  };
 
   const handleCancel = () => {
     navigate('/products');
@@ -96,6 +126,14 @@ export function ProductCreatePage() {
               className="h-11 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-sm text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-9 sm:text-xs"
             />
           </div>
+
+          <ProductDescriptionField
+            description={description}
+            onDescriptionChange={setDescription}
+            productData={descriptionProductData}
+            label="Ajuda da IA"
+            hideTextarea
+          />
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-medium text-label">

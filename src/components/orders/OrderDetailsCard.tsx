@@ -33,7 +33,7 @@ export function OrderDetailsCard({ order }: Props) {
               Atualizado em {formatDateTime(order.updatedAt)}
             </span>
           )}
-          {order.expiresAt && order.status === 'WAITING_SELLER_CONFIRMATION' && (
+          {order.expiresAt && order.status === 'PENDING_PAYMENT' && (
             <div className="mt-1">
               <ReservationCountdown expiresAt={order.expiresAt} />
             </div>

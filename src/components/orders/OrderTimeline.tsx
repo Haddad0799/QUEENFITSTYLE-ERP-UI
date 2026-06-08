@@ -18,59 +18,65 @@ const EVENT_META: Record<string, EventMeta> = {
     dot: 'bg-brand text-on-brand',
     ring: 'ring-brand/30',
   },
-  STOCK_RESERVED: {
-    label: 'Estoque reservado',
-    icon: '📦',
-    dot: 'bg-amber-500 text-white',
-    ring: 'ring-amber-500/30',
-  },
-  WHATSAPP_REDIRECTED: {
+  WHATSAPP_OPENED: {
     label: 'Cliente redirecionado para o WhatsApp',
     icon: '💬',
     dot: 'bg-emerald-500 text-white',
     ring: 'ring-emerald-500/30',
   },
-  ORDER_CONFIRMED: {
-    label: 'Venda confirmada',
+  PAID: {
+    label: 'Pagamento confirmado',
     icon: '✓',
     dot: 'bg-emerald-500 text-white',
     ring: 'ring-emerald-500/30',
   },
-  ORDER_CANCELLED: {
+  DELIVERED: {
+    label: 'Pedido entregue',
+    icon: '🏁',
+    dot: 'bg-emerald-600 text-white',
+    ring: 'ring-emerald-500/30',
+  },
+  CANCELLED: {
     label: 'Pedido cancelado',
     icon: '✕',
     dot: 'bg-rose-500 text-white',
     ring: 'ring-rose-500/30',
   },
-  ORDER_EXPIRED: {
+  EXPIRED: {
     label: 'Pedido expirado',
     icon: '⏱',
     dot: 'bg-gray-400 text-white dark:bg-gray-500',
     ring: 'ring-gray-400/30',
   },
-  RESERVATION_RELEASED: {
-    label: 'Reserva liberada',
+  RETURNED: {
+    label: 'Pedido devolvido',
+    icon: '↩',
+    dot: 'bg-orange-500 text-white',
+    ring: 'ring-orange-500/30',
+  },
+  RESERVATIONS_CONFIRMED: {
+    label: 'Reservas confirmadas (estoque baixado)',
+    icon: '📉',
+    dot: 'bg-emerald-600 text-white',
+    ring: 'ring-emerald-500/30',
+  },
+  RESERVATIONS_RELEASED: {
+    label: 'Reservas liberadas',
     icon: '↩',
     dot: 'bg-blue-500 text-white',
     ring: 'ring-blue-500/30',
   },
-  ORDER_PREPARING: {
-    label: 'Em preparo',
-    icon: '🧰',
-    dot: 'bg-blue-500 text-white',
-    ring: 'ring-blue-500/30',
+  RESERVATIONS_RETURNED: {
+    label: 'Estoque reposto',
+    icon: '📦',
+    dot: 'bg-orange-500 text-white',
+    ring: 'ring-orange-500/30',
   },
-  ORDER_SHIPPED: {
-    label: 'Enviado',
-    icon: '🚚',
-    dot: 'bg-indigo-500 text-white',
-    ring: 'ring-indigo-500/30',
-  },
-  ORDER_DELIVERED: {
-    label: 'Entregue',
-    icon: '🏁',
-    dot: 'bg-emerald-600 text-white',
-    ring: 'ring-emerald-500/30',
+  NOTE_ADDED: {
+    label: 'Observação adicionada',
+    icon: '📝',
+    dot: 'bg-surface-alt text-heading',
+    ring: 'ring-edge',
   },
 };
 

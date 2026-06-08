@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { OrderCustomerCard } from '../components/orders/OrderCustomerCard';
+import { OrderDeliveryAddressCard } from '../components/orders/OrderDeliveryAddressCard';
 import { OrderDetailsCard } from '../components/orders/OrderDetailsCard';
 import { OrderItemsList } from '../components/orders/OrderItemsList';
 import { OrderTimeline } from '../components/orders/OrderTimeline';
 import { CancelOrderDialog } from '../components/orders/CancelOrderDialog';
 import { ExpireOrderDialog } from '../components/orders/ExpireOrderDialog';
+import { DeliverOrderDialog } from '../components/orders/DeliverOrderDialog';
+import { ReturnOrderDialog } from '../components/orders/ReturnOrderDialog';
 import { useOrder } from '../hooks/orders/useOrder';
 import { useOrderTimeline } from '../hooks/orders/useOrderTimeline';
 import {
@@ -53,6 +56,8 @@ export function OrderDetailsPage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showExpireDialog, setShowExpireDialog] = useState(false);
+  const [showDeliverDialog, setShowDeliverDialog] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   const handleConfirm = async () => {
     if (!order) return;
@@ -93,6 +98,34 @@ export function OrderDetailsPage() {
       setShowExpireDialog(false);
     } else {
       toast.error('Erro ao expirar pedido', res.error);
+    }
+  };
+
+  const handleDeliver = async () => {
+    if (!order) return;
+    const res = await actions.deliver(order);
+    if (res.ok) {
+      toast.success(
+        `Pedido #${order.orderId} entregue`,
+        'O pedido foi marcado como entregue.',
+      );
+      setShowDeliverDialog(false);
+    } else {
+      toast.error('Erro ao marcar entrega', res.error);
+    }
+  };
+
+  const handleReturn = async (reason: string) => {
+    if (!order) return;
+    const res = await actions.returnOrder(order, reason);
+    if (res.ok) {
+      toast.success(
+        `Pedido #${order.orderId} devolvido`,
+        'O estoque dos itens foi reposto.',
+      );
+      setShowReturnDialog(false);
+    } else {
+      toast.error('Erro ao registrar devolução', res.error);
     }
   };
 
@@ -138,14 +171,18 @@ export function OrderDetailsPage() {
 
   /**
    * Regras operacionais por status:
-   * - WAITING_SELLER_CONFIRMATION → pode confirmar, cancelar, expirar
-   * - CONFIRMED, PREPARING, SHIPPED, DELIVERED → somente leitura para
-   *   este ERP (transições de logística serão expostas em outro endpoint)
-   * - CANCELLED, EXPIRED → somente leitura
+   * - PENDING_PAYMENT → confirmar pagamento, cancelar ou expirar
+   * - PAID → marcar entrega ou registrar devolução
+   * - DELIVERED → registrar devolução
+   * - CANCELLED, EXPIRED, RETURNED → somente leitura (terminal)
    */
-  const canMutate = order.status === 'WAITING_SELLER_CONFIRMATION';
+  const canConfirmPayment = order.status === 'PENDING_PAYMENT';
+  const canDeliver = order.status === 'PAID';
+  const canReturn = order.status === 'PAID' || order.status === 'DELIVERED';
   const isReadOnly =
-    order.status === 'CANCELLED' || order.status === 'EXPIRED';
+    order.status === 'CANCELLED' ||
+    order.status === 'EXPIRED' ||
+    order.status === 'RETURNED';
 
   /**
    * Preferimos os eventos do endpoint dedicado (mais novos após mutations).
@@ -186,7 +223,7 @@ export function OrderDetailsPage() {
             ↻ Atualizar
           </button>
 
-          {canMutate && (
+          {canConfirmPayment && (
             <>
               <button
                 type="button"
@@ -210,9 +247,31 @@ export function OrderDetailsPage() {
                 onClick={() => setShowConfirmDialog(true)}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-50"
               >
-                ✓ Confirmar venda
+                ✓ Confirmar pagamento
               </button>
             </>
+          )}
+
+          {canReturn && (
+            <button
+              type="button"
+              disabled={actions.isBusy}
+              onClick={() => setShowReturnDialog(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:border-orange-400 hover:text-orange-600 active:scale-[0.98] disabled:opacity-50"
+            >
+              ↩ Registrar devolução
+            </button>
+          )}
+
+          {canDeliver && (
+            <button
+              type="button"
+              disabled={actions.isBusy}
+              onClick={() => setShowDeliverDialog(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3.5 py-2 text-[11px] font-semibold text-white shadow shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-50"
+            >
+              🏁 Marcar como entregue
+            </button>
           )}
         </div>
       </div>
@@ -223,6 +282,7 @@ export function OrderDetailsPage() {
         </div>
         <div className="flex flex-col gap-4">
           <OrderCustomerCard customer={order.customer} />
+          <OrderDeliveryAddressCard address={order.deliveryAddress} />
         </div>
       </div>
 
@@ -260,15 +320,15 @@ export function OrderDetailsPage() {
                 ✓
               </span>
               <h3 className="text-sm font-semibold text-heading">
-                Confirmar venda #{order.orderId}
+                Confirmar pagamento #{order.orderId}
               </h3>
             </div>
             <p className="mb-4 text-[11px] leading-relaxed text-label">
-              Marcar pedido de{' '}
+              Confirmar o pagamento do pedido de{' '}
               <span className="font-semibold text-heading">
                 {order.customer.name}
-              </span>{' '}
-              como confirmado. O estoque das reservas será baixado oficialmente.
+              </span>
+              . O estoque das reservas será baixado oficialmente.
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
@@ -288,7 +348,7 @@ export function OrderDetailsPage() {
                 {actions.isConfirming && (
                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                 )}
-                {actions.isConfirming ? 'Confirmando…' : 'Confirmar venda'}
+                {actions.isConfirming ? 'Confirmando…' : 'Confirmar pagamento'}
               </button>
             </div>
           </div>
@@ -317,6 +377,30 @@ export function OrderDetailsPage() {
           actions.clearError();
         }}
         onConfirm={handleExpire}
+      />
+
+      <DeliverOrderDialog
+        open={showDeliverDialog}
+        order={order}
+        isSubmitting={actions.isDelivering}
+        error={actions.actionError}
+        onClose={() => {
+          setShowDeliverDialog(false);
+          actions.clearError();
+        }}
+        onConfirm={handleDeliver}
+      />
+
+      <ReturnOrderDialog
+        open={showReturnDialog}
+        order={order}
+        isSubmitting={actions.isReturning}
+        error={actions.actionError}
+        onClose={() => {
+          setShowReturnDialog(false);
+          actions.clearError();
+        }}
+        onConfirm={handleReturn}
       />
     </div>
   );

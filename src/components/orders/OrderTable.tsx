@@ -12,6 +12,8 @@ type Props = {
   onConfirm?: (order: OrderSummaryDTO) => void;
   onCancel?: (order: OrderSummaryDTO) => void;
   onExpire?: (order: OrderSummaryDTO) => void;
+  onDeliver?: (order: OrderSummaryDTO) => void;
+  onReturn?: (order: OrderSummaryDTO) => void;
 };
 
 const SkeletonRow = ({ cols }: { cols: number }) => (
@@ -29,14 +31,18 @@ const buildActions = (
   onConfirm?: (o: OrderSummaryDTO) => void,
   onCancel?: (o: OrderSummaryDTO) => void,
   onExpire?: (o: OrderSummaryDTO) => void,
+  onDeliver?: (o: OrderSummaryDTO) => void,
+  onReturn?: (o: OrderSummaryDTO) => void,
 ): ActionItem[] => {
-  const isPending = order.status === 'WAITING_SELLER_CONFIRMATION';
+  const isPending = order.status === 'PENDING_PAYMENT';
+  const isPaid = order.status === 'PAID';
+  const canReturn = order.status === 'PAID' || order.status === 'DELIVERED';
   const actions: ActionItem[] = [];
 
   if (isPending && onConfirm) {
     actions.push({
       key: 'confirm',
-      label: 'Confirmar venda',
+      label: 'Confirmar pagamento',
       icon: '✓',
       onSelect: () => onConfirm(order),
     });
@@ -58,6 +64,22 @@ const buildActions = (
       onSelect: () => onExpire(order),
     });
   }
+  if (isPaid && onDeliver) {
+    actions.push({
+      key: 'deliver',
+      label: 'Marcar como entregue',
+      icon: '🏁',
+      onSelect: () => onDeliver(order),
+    });
+  }
+  if (canReturn && onReturn) {
+    actions.push({
+      key: 'return',
+      label: 'Registrar devolução',
+      icon: '↩',
+      onSelect: () => onReturn(order),
+    });
+  }
 
   return actions;
 };
@@ -69,6 +91,8 @@ export function OrderTable({
   onConfirm,
   onCancel,
   onExpire,
+  onDeliver,
+  onReturn,
 }: Props) {
   const navigate = useNavigate();
 
@@ -134,9 +158,16 @@ export function OrderTable({
               </tr>
             )}
             {items.map((order) => {
-              const actions = buildActions(order, onConfirm, onCancel, onExpire);
+              const actions = buildActions(
+                order,
+                onConfirm,
+                onCancel,
+                onExpire,
+                onDeliver,
+                onReturn,
+              );
               const showCountdown =
-                order.status === 'WAITING_SELLER_CONFIRMATION' &&
+                order.status === 'PENDING_PAYMENT' &&
                 Boolean(order.expiresAt);
               return (
                 <tr
@@ -150,7 +181,16 @@ export function OrderTable({
                     </span>
                   </td>
                   <td className="px-4 py-3 align-middle text-xs text-body">
-                    {order.customerName}
+                    <div className="flex flex-col gap-0.5">
+                      <span>{order.customerName}</span>
+                      {order.deliveryAddress?.city && (
+                        <span className="text-[11px] text-faint">
+                          📍 {[order.deliveryAddress.city, order.deliveryAddress.state]
+                            .filter(Boolean)
+                            .join(' / ')}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 align-middle text-xs text-body">
                     {formatPhone(order.customerPhone)}
@@ -230,8 +270,7 @@ export function OrderTable({
         )}
         {items.map((order) => {
           const showCountdown =
-            order.status === 'WAITING_SELLER_CONFIRMATION' &&
-            Boolean(order.expiresAt);
+            order.status === 'PENDING_PAYMENT' && Boolean(order.expiresAt);
           return (
             <button
               key={order.orderId}
@@ -249,6 +288,13 @@ export function OrderTable({
                 <span className="text-[11px] text-muted">
                   {formatPhone(order.customerPhone)} · {order.itemsCount} item(ns)
                 </span>
+                {order.deliveryAddress?.city && (
+                  <span className="text-[11px] text-faint">
+                    📍 {[order.deliveryAddress.city, order.deliveryAddress.state]
+                      .filter(Boolean)
+                      .join(' / ')}
+                  </span>
+                )}
                 <div className="mt-0.5 flex flex-wrap items-center gap-2">
                   <OrderStatusBadge status={order.status} compact />
                   <span className="text-[11px] text-faint">

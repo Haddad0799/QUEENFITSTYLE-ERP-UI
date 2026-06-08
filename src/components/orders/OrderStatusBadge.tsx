@@ -1,51 +1,45 @@
 import type { OrderStatus } from '../../types/orders';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  WAITING_SELLER_CONFIRMATION: 'Aguardando confirmação',
-  CONFIRMED: 'Confirmado',
-  PREPARING: 'Em preparo',
-  SHIPPED: 'Enviado',
+  PENDING_PAYMENT: 'Aguardando pagamento',
+  PAID: 'Pago',
   DELIVERED: 'Entregue',
   CANCELLED: 'Cancelado',
   EXPIRED: 'Expirado',
+  RETURNED: 'Devolvido',
 };
 
 const STATUS_SHORT: Record<OrderStatus, string> = {
-  WAITING_SELLER_CONFIRMATION: 'Pendente',
-  CONFIRMED: 'Confirmado',
-  PREPARING: 'Preparo',
-  SHIPPED: 'Enviado',
+  PENDING_PAYMENT: 'Pendente',
+  PAID: 'Pago',
   DELIVERED: 'Entregue',
   CANCELLED: 'Cancelado',
   EXPIRED: 'Expirado',
+  RETURNED: 'Devolvido',
 };
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
-  WAITING_SELLER_CONFIRMATION:
+  PENDING_PAYMENT:
     'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/40',
-  CONFIRMED:
+  PAID:
     'bg-green-50 text-green-700 border-green-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
-  PREPARING:
-    'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40',
-  SHIPPED:
-    'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/40',
   DELIVERED:
     'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-200 dark:border-emerald-500/40',
   CANCELLED:
     'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/40',
   EXPIRED:
     'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+  RETURNED:
+    'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-300 dark:border-orange-500/40',
 };
 
 const DOT_STYLES: Record<OrderStatus, string> = {
-  WAITING_SELLER_CONFIRMATION:
-    'bg-amber-500 dark:bg-amber-300 animate-pulse',
-  CONFIRMED: 'bg-emerald-500 dark:bg-emerald-300',
-  PREPARING: 'bg-blue-500 dark:bg-blue-300',
-  SHIPPED: 'bg-indigo-500 dark:bg-indigo-300',
+  PENDING_PAYMENT: 'bg-amber-500 dark:bg-amber-300 animate-pulse',
+  PAID: 'bg-emerald-500 dark:bg-emerald-300',
   DELIVERED: 'bg-emerald-600 dark:bg-emerald-400',
   CANCELLED: 'bg-rose-500 dark:bg-rose-300',
   EXPIRED: 'bg-gray-400 dark:bg-gray-500',
+  RETURNED: 'bg-orange-500 dark:bg-orange-300',
 };
 
 type Props = {

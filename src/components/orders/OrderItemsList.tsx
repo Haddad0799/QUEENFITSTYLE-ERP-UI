@@ -55,7 +55,20 @@ export function OrderItemsList({ items }: Props) {
                   <span className="font-mono">{item.skuCode}</span>
                 </td>
                 <td className="px-3 py-2 align-middle text-[11px] text-body">
-                  {item.colorName ?? '—'}
+                  {item.colorName ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      {item.colorHex && (
+                        <span
+                          className="inline-block h-3 w-3 flex-shrink-0 rounded-full border border-edge"
+                          style={{ backgroundColor: item.colorHex }}
+                          title={item.colorHex}
+                        />
+                      )}
+                      {item.colorName}
+                    </span>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className="px-3 py-2 align-middle text-[11px] text-body">
                   {item.sizeLabel ?? '—'}

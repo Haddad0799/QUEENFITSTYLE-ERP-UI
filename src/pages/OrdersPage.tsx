@@ -5,6 +5,8 @@ import { OrderFilters } from '../components/orders/OrderFilters';
 import { OrderTable } from '../components/orders/OrderTable';
 import { CancelOrderDialog } from '../components/orders/CancelOrderDialog';
 import { ExpireOrderDialog } from '../components/orders/ExpireOrderDialog';
+import { DeliverOrderDialog } from '../components/orders/DeliverOrderDialog';
+import { ReturnOrderDialog } from '../components/orders/ReturnOrderDialog';
 import { useOrders } from '../hooks/orders/useOrders';
 import { useToast } from '../components/toast/ToastProvider';
 import { ordersService } from '../services/orders';
@@ -83,6 +85,18 @@ export function OrdersPage() {
   );
   const [isExpiring, setIsExpiring] = useState(false);
   const [expireError, setExpireError] = useState<string | null>(null);
+
+  const [deliverTarget, setDeliverTarget] = useState<OrderSummaryDTO | null>(
+    null,
+  );
+  const [isDelivering, setIsDelivering] = useState(false);
+  const [deliverError, setDeliverError] = useState<string | null>(null);
+
+  const [returnTarget, setReturnTarget] = useState<OrderSummaryDTO | null>(
+    null,
+  );
+  const [isReturning, setIsReturning] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
 
   const updateUrl = useCallback(
     (nextFilters: OrderListFilters, nextPage: number) => {
@@ -177,6 +191,48 @@ export function OrdersPage() {
     }
   };
 
+  const handleDeliverOrder = async () => {
+    if (!deliverTarget) return;
+    setIsDelivering(true);
+    setDeliverError(null);
+    try {
+      await ordersService.deliver(deliverTarget.orderId);
+      toast.success(
+        `Pedido #${deliverTarget.orderId} entregue`,
+        'O pedido foi marcado como entregue.',
+      );
+      setDeliverTarget(null);
+      refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Tente novamente.';
+      setDeliverError(message);
+      toast.error('Erro ao marcar entrega', message);
+    } finally {
+      setIsDelivering(false);
+    }
+  };
+
+  const handleReturnOrder = async (reason: string) => {
+    if (!returnTarget) return;
+    setIsReturning(true);
+    setReturnError(null);
+    try {
+      await ordersService.return(returnTarget.orderId, reason);
+      toast.success(
+        `Pedido #${returnTarget.orderId} devolvido`,
+        'O estoque dos itens foi reposto.',
+      );
+      setReturnTarget(null);
+      refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Tente novamente.';
+      setReturnError(message);
+      toast.error('Erro ao registrar devolução', message);
+    } finally {
+      setIsReturning(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -219,6 +275,14 @@ export function OrdersPage() {
         onExpire={(order) => {
           setExpireError(null);
           setExpireTarget(order);
+        }}
+        onDeliver={(order) => {
+          setDeliverError(null);
+          setDeliverTarget(order);
+        }}
+        onReturn={(order) => {
+          setReturnError(null);
+          setReturnTarget(order);
         }}
       />
 
@@ -318,6 +382,24 @@ export function OrdersPage() {
         error={expireError}
         onClose={() => setExpireTarget(null)}
         onConfirm={handleExpireOrder}
+      />
+
+      <DeliverOrderDialog
+        open={deliverTarget !== null}
+        order={deliverTarget}
+        isSubmitting={isDelivering}
+        error={deliverError}
+        onClose={() => setDeliverTarget(null)}
+        onConfirm={handleDeliverOrder}
+      />
+
+      <ReturnOrderDialog
+        open={returnTarget !== null}
+        order={returnTarget}
+        isSubmitting={isReturning}
+        error={returnError}
+        onClose={() => setReturnTarget(null)}
+        onConfirm={handleReturnOrder}
       />
     </div>
   );

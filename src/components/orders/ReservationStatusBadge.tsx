@@ -31,6 +31,12 @@ const META: Record<string, Meta> = {
       'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
     dot: 'bg-gray-400',
   },
+  RETURNED: {
+    label: 'Devolvida',
+    styles:
+      'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-200 dark:border-orange-500/40',
+    dot: 'bg-orange-500',
+  },
 };
 
 const FALLBACK: Meta = {

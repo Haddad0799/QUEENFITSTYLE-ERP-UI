@@ -29,6 +29,15 @@ export const formatDateShort = (iso: string | null | undefined) => {
   return DATE_SHORT.format(d);
 };
 
+export const formatCep = (raw: string | null | undefined) => {
+  if (!raw) return '—';
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 8) {
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  }
+  return raw;
+};
+
 export const formatPhone = (raw: string | null | undefined) => {
   if (!raw) return '—';
   const digits = raw.replace(/\D/g, '');
