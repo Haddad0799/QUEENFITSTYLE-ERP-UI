@@ -9,6 +9,7 @@ import {
   ClockIcon,
   FlagIcon,
   InboxIcon,
+  MailIcon,
   MapPinIcon,
   RotateCcwIcon,
   XIcon,
@@ -192,6 +193,12 @@ export function OrderTable({
                   <td className="px-4 py-3 align-middle text-xs text-body">
                     <div className="flex flex-col gap-0.5">
                       <span>{order.customerName}</span>
+                      {order.customerEmail && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-faint">
+                          <MailIcon className="h-3 w-3 flex-shrink-0" />
+                          {order.customerEmail}
+                        </span>
+                      )}
                       {order.deliveryAddress?.city && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-faint">
                           <MapPinIcon className="h-3 w-3 flex-shrink-0" />
@@ -298,6 +305,12 @@ export function OrderTable({
                 <span className="text-[11px] text-muted">
                   {formatPhone(order.customerPhone)} · {order.itemsCount} item(ns)
                 </span>
+                {order.customerEmail && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-faint">
+                    <MailIcon className="h-3 w-3 flex-shrink-0" />
+                    {order.customerEmail}
+                  </span>
+                )}
                 {order.deliveryAddress?.city && (
                   <span className="inline-flex items-center gap-1 text-[11px] text-faint">
                     <MapPinIcon className="h-3 w-3 flex-shrink-0" />

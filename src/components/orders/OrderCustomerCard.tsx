@@ -1,6 +1,6 @@
 import type { OrderCustomerDTO } from '../../types/orders';
 import { formatPhone } from '../../lib/format';
-import { MapPinIcon, MessageCircleIcon } from '../icons';
+import { MailIcon, MapPinIcon, MessageCircleIcon } from '../icons';
 
 type Props = {
   customer: OrderCustomerDTO;
@@ -49,6 +49,11 @@ export function OrderCustomerCard({ customer }: Props) {
           <span className="text-[11px] text-muted">
             {formatPhone(customer.phone)}
           </span>
+          {customer.email && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+              <MailIcon className="h-3 w-3 flex-shrink-0" /> {customer.email}
+            </span>
+          )}
           {customer.city && (
             <span className="inline-flex items-center gap-1 text-[11px] text-muted">
               <MapPinIcon className="h-3 w-3 flex-shrink-0" /> {customer.city}

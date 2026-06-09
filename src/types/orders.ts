@@ -34,6 +34,7 @@ export type OrderSummaryDTO = {
   status: OrderStatus;
   customerName: string;
   customerPhone: string;
+  customerEmail: string | null;
   totalAmount: number;
   itemsCount: number;
   deliveryAddress: OrderDeliveryAddressDTO | null;
@@ -61,6 +62,7 @@ export type OrderCustomerDTO = {
   customerId: number;
   name: string;
   phone: string;
+  email: string | null;
   city: string;
 };
 
