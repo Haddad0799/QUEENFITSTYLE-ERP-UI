@@ -176,8 +176,6 @@ export type OrderActionResultDTO = {
 export type OrderListFilters = {
   status?: OrderStatus | '';
   customerName?: string;
-  phone?: string;
-  skuCode?: string;
   createdAtFrom?: string;
   createdAtTo?: string;
 };

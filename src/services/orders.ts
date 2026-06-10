@@ -25,8 +25,6 @@ export const ordersService = {
     apiClient.get<PageResponseOrderSummaryDTO>('/erp/orders', {
       status: params.status || undefined,
       customerName: trim(params.customerName),
-      phone: trim(params.phone),
-      skuCode: trim(params.skuCode),
       createdAtFrom: trim(params.createdAtFrom),
       createdAtTo: trim(params.createdAtTo),
       page: params.page,

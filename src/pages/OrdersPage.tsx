@@ -20,8 +20,6 @@ import type {
 const FILTER_KEYS = [
   'status',
   'customerName',
-  'phone',
-  'skuCode',
   'createdAtFrom',
   'createdAtTo',
 ] as const satisfies readonly (keyof OrderListFilters)[];

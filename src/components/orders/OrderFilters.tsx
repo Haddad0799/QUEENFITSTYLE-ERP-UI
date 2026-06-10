@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import type { OrderListFilters, OrderStatus } from '../../types/orders';
 import { ORDER_STATUS_LABEL } from './OrderStatusBadge';
-import { PhoneIcon, TagIcon, UserIcon } from '../icons';
+import { UserIcon } from '../icons';
 
 type Props = {
   value: OrderListFilters;
@@ -19,6 +19,74 @@ const STATUS_OPTIONS: OrderStatus[] = [
   'EXPIRED',
   'RETURNED',
 ];
+
+type PeriodKey = 'week' | 'month' | 'year';
+
+/** Formata uma data no fuso local como `YYYY-MM-DD` (sem deslocamento UTC). */
+function toISODate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Atalhos de período. Cada `resolve()` calcula `from`/`to` relativos ao dia
+ * atual, com `to` sempre no dia de hoje e `from` no início do período.
+ */
+const PERIOD_OPTIONS: {
+  key: PeriodKey;
+  label: string;
+  resolve: () => { from: string; to: string };
+}[] = [
+  {
+    key: 'week',
+    label: 'Esta semana',
+    resolve: () => {
+      const now = new Date();
+      // segunda-feira como início da semana (ISO 8601)
+      const offsetToMonday = (now.getDay() + 6) % 7;
+      const start = new Date(now);
+      start.setDate(now.getDate() - offsetToMonday);
+      return { from: toISODate(start), to: toISODate(now) };
+    },
+  },
+  {
+    key: 'month',
+    label: 'Este mês',
+    resolve: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: toISODate(start), to: toISODate(now) };
+    },
+  },
+  {
+    key: 'year',
+    label: 'Este ano',
+    resolve: () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 1);
+      return { from: toISODate(start), to: toISODate(now) };
+    },
+  },
+];
+
+/**
+ * Descobre qual atalho de período corresponde aos filtros atuais comparando
+ * `createdAtFrom`/`createdAtTo` com o que cada atalho resolveria no momento do
+ * render. Um link salvo de "esta semana" de ontem não acende o botão hoje.
+ */
+function detectActivePeriod(filters: OrderListFilters): PeriodKey | null {
+  const { createdAtFrom, createdAtTo } = filters;
+  if (!createdAtFrom || !createdAtTo) return null;
+  for (const option of PERIOD_OPTIONS) {
+    const resolved = option.resolve();
+    if (resolved.from === createdAtFrom && resolved.to === createdAtTo) {
+      return option.key;
+    }
+  }
+  return null;
+}
 
 /**
  * Debounce simples para inputs livres. Aplica `onChange` 300ms após a
@@ -63,20 +131,27 @@ export function OrderFilters({
     'customerName',
     onChange,
   );
-  const [phone, setPhone] = useDebouncedFilter(value, 'phone', onChange);
-  const [skuCode, setSkuCode] = useDebouncedFilter(value, 'skuCode', onChange);
 
-  const hasAnyTextFilter =
-    Boolean(customerName) || Boolean(phone) || Boolean(skuCode);
+  const activePeriod = detectActivePeriod(value);
   const hasDateFilter =
     Boolean(value.createdAtFrom) || Boolean(value.createdAtTo);
   const hasAnyFilter =
-    Boolean(value.status) || hasAnyTextFilter || hasDateFilter;
+    Boolean(value.status) || Boolean(customerName) || hasDateFilter;
+
+  const handlePeriod = (key: PeriodKey) => {
+    if (activePeriod === key) {
+      // atalho já ativo → limpa o período (toggle off)
+      onChange({ ...value, createdAtFrom: undefined, createdAtTo: undefined });
+      return;
+    }
+    const option = PERIOD_OPTIONS.find((opt) => opt.key === key);
+    if (!option) return;
+    const { from, to } = option.resolve();
+    onChange({ ...value, createdAtFrom: from, createdAtTo: to });
+  };
 
   const handleClearAll = () => {
     setCustomerName('');
-    setPhone('');
-    setSkuCode('');
     onChange({});
   };
 
@@ -130,7 +205,7 @@ export function OrderFilters({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <FilterInput
           label="Cliente"
           placeholder="Nome do cliente"
@@ -138,42 +213,28 @@ export function OrderFilters({
           onChange={setCustomerName}
           icon={UserIcon}
         />
-        <FilterInput
-          label="Telefone"
-          placeholder="Ex: 11999998888"
-          value={phone}
-          onChange={setPhone}
-          icon={PhoneIcon}
-        />
-        <FilterInput
-          label="SKU"
-          placeholder="Código do SKU"
-          value={skuCode}
-          onChange={setSkuCode}
-          icon={TagIcon}
-        />
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
             Período
           </label>
           <div className="flex items-center gap-1">
-            <input
-              type="date"
-              value={value.createdAtFrom ?? ''}
-              onChange={(e) =>
-                onChange({ ...value, createdAtFrom: e.target.value })
-              }
-              className="h-8 w-full min-w-0 rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
-            />
-            <span className="text-faint">–</span>
-            <input
-              type="date"
-              value={value.createdAtTo ?? ''}
-              onChange={(e) =>
-                onChange({ ...value, createdAtTo: e.target.value })
-              }
-              className="h-8 w-full min-w-0 rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
-            />
+            {PERIOD_OPTIONS.map((option) => {
+              const isActive = activePeriod === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => handlePeriod(option.key)}
+                  className={`inline-flex h-8 flex-1 items-center justify-center rounded-lg border px-2 text-[11px] font-medium transition ${
+                    isActive
+                      ? 'border-brand bg-brand/10 text-brand'
+                      : 'border-edge-strong bg-surface text-body hover:text-heading'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
