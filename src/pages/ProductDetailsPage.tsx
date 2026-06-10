@@ -113,7 +113,6 @@ export function ProductDetailsPage() {
       width: '',
       height: '',
       length: '',
-      weight: '',
       stockQuantity: '',
       costPrice: '',
       sellingPrice: '',
@@ -197,7 +196,7 @@ export function ProductDetailsPage() {
 
   // dimensions editing
   const [isEditingDimensions, setIsEditingDimensions] = useState(false);
-  const [dimensionsForm, setDimensionsForm] = useState({ width: '', height: '', length: '', weight: '' });
+  const [dimensionsForm, setDimensionsForm] = useState({ width: '', height: '', length: '' });
   const [isSavingDimensions, setIsSavingDimensions] = useState(false);
   const [dimensionsError, setDimensionsError] = useState<string | null>(null);
 
@@ -422,7 +421,6 @@ export function ProductDetailsPage() {
         width: '',
         height: '',
         length: '',
-        weight: '',
         stockQuantity: '',
         costPrice: '',
         sellingPrice: '',
@@ -491,7 +489,6 @@ export function ProductDetailsPage() {
         width: '',
         height: '',
         length: '',
-        weight: '',
         stockQuantity: '',
         costPrice: '',
         sellingPrice: '',
@@ -518,7 +515,6 @@ export function ProductDetailsPage() {
         width: Number(row.width || 0),
         height: Number(row.height || 0),
         length: Number(row.length || 0),
-        weight: Number(row.weight || 0),
         stockQuantity: Number(row.stockQuantity || 0),
         costPrice: Number(row.costPrice || 0),
         sellingPrice: Number(row.sellingPrice || 0),
@@ -714,7 +710,6 @@ export function ProductDetailsPage() {
       width: String(selectedSku.dimensions.width),
       height: String(selectedSku.dimensions.height),
       length: String(selectedSku.dimensions.length),
-      weight: String(selectedSku.dimensions.weight),
     });
     setDimensionsError(null);
     setIsEditingDimensions(true);
@@ -734,12 +729,10 @@ export function ProductDetailsPage() {
     const w = parseFloat(dimensionsForm.width);
     const h = parseFloat(dimensionsForm.height);
     const l = parseFloat(dimensionsForm.length);
-    const wt = parseFloat(dimensionsForm.weight);
 
     if (!isNaN(w)) body.width = w;
     if (!isNaN(h)) body.height = h;
     if (!isNaN(l)) body.length = l;
-    if (!isNaN(wt)) body.weight = wt;
 
     if (Object.keys(body).length === 0) {
       setDimensionsError('Preencha ao menos um campo.');
@@ -2326,9 +2319,6 @@ export function ProductDetailsPage() {
                           Comprimento (cm)
                         </th>
                         <th className="px-2 py-2 text-left font-semibold">
-                          Peso (kg)
-                        </th>
-                        <th className="px-2 py-2 text-left font-semibold">
                           Estoque
                         </th>
                         <th className="px-2 py-2 text-left font-semibold">
@@ -2432,21 +2422,6 @@ export function ProductDetailsPage() {
                                 )
                               }
                               className="h-8 w-24 rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none focus:border-brand focus:ring-1 focus:ring-brand/35"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5 align-middle">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={row.weight}
-                              onChange={(e) =>
-                                handleSkuRowChange(
-                                  index,
-                                  'weight',
-                                  e.target.value,
-                                )
-                              }
-                              className="h-8 w-20 rounded-lg border border-edge-strong bg-surface-input px-2 text-[11px] text-heading outline-none focus:border-brand focus:ring-1 focus:ring-brand/35"
                             />
                           </td>
                           <td className="px-2 py-1.5 align-middle">
@@ -2713,16 +2688,6 @@ export function ProductDetailsPage() {
                               className="mt-0.5 block w-full rounded border border-edge-strong bg-surface-input px-2 py-1 text-[11px] text-heading focus:border-brand focus:outline-none"
                             />
                           </label>
-                          <label className="block">
-                            <span className="text-[10px] text-muted">Peso (kg)</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={dimensionsForm.weight}
-                              onChange={(e) => setDimensionsForm((f) => ({ ...f, weight: e.target.value }))}
-                              className="mt-0.5 block w-full rounded border border-edge-strong bg-surface-input px-2 py-1 text-[11px] text-heading focus:border-brand focus:outline-none"
-                            />
-                          </label>
                         </div>
                         {dimensionsError && (
                           <p className="text-[10px] text-danger">{dimensionsError}</p>
@@ -2756,9 +2721,6 @@ export function ProductDetailsPage() {
                         </p>
                         <p className="text-[11px] text-body">
                           Comprimento: {selectedSku.dimensions.length} cm
-                        </p>
-                        <p className="text-[11px] text-body">
-                          Peso: {selectedSku.dimensions.weight} kg
                         </p>
                       </>
                     )}

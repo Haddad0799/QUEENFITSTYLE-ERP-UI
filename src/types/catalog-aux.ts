@@ -30,7 +30,6 @@ export type SkuDimensions = {
   width: number;
   height: number;
   length: number;
-  weight: number;
 };
 
 export type SkuStock = {
@@ -65,7 +64,6 @@ export type UpdateSkuDimensionsDTO = {
   width?: number;
   height?: number;
   length?: number;
-  weight?: number;
 };
 
 export type PresignedUrlDTO = {
