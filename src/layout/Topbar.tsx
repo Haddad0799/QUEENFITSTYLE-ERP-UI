@@ -35,15 +35,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-
-        {/* Search bar */}
-        <div className="relative hidden flex-1 sm:block sm:max-w-md">
-          <input
-            placeholder="Buscar produto ou SKU..."
-            className="h-9 w-full rounded-xl border border-edge-strong bg-surface-input px-3 pl-9 text-sm text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25"
-          />
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
