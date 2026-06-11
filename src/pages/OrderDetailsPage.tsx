@@ -6,7 +6,6 @@ import { OrderDetailsCard } from '../components/orders/OrderDetailsCard';
 import { OrderItemsList } from '../components/orders/OrderItemsList';
 import { OrderTimeline } from '../components/orders/OrderTimeline';
 import { CancelOrderDialog } from '../components/orders/CancelOrderDialog';
-import { ExpireOrderDialog } from '../components/orders/ExpireOrderDialog';
 import { DeliverOrderDialog } from '../components/orders/DeliverOrderDialog';
 import { ReturnOrderDialog } from '../components/orders/ReturnOrderDialog';
 import { useOrder } from '../hooks/orders/useOrder';
@@ -18,7 +17,6 @@ import {
 import { useToast } from '../components/toast/ToastProvider';
 import {
   CheckIcon,
-  ClockIcon,
   FlagIcon,
   RefreshCwIcon,
   RotateCcwIcon,
@@ -63,7 +61,6 @@ export function OrderDetailsPage() {
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [showExpireDialog, setShowExpireDialog] = useState(false);
   const [showDeliverDialog, setShowDeliverDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
 
@@ -92,20 +89,6 @@ export function OrderDetailsPage() {
       setShowCancelDialog(false);
     } else {
       toast.error('Erro ao cancelar pedido', res.error);
-    }
-  };
-
-  const handleExpire = async () => {
-    if (!order) return;
-    const res = await actions.expire(order);
-    if (res.ok) {
-      toast.success(
-        `Pedido #${order.orderId} expirado`,
-        'As reservas foram liberadas para venda.',
-      );
-      setShowExpireDialog(false);
-    } else {
-      toast.error('Erro ao expirar pedido', res.error);
     }
   };
 
@@ -179,7 +162,8 @@ export function OrderDetailsPage() {
 
   /**
    * Regras operacionais por status:
-   * - PENDING_PAYMENT → confirmar pagamento, cancelar ou expirar
+   * - PENDING_PAYMENT → confirmar pagamento ou cancelar
+   *   (a expiração ocorre automaticamente após 24h no backend)
    * - PAID → marcar entrega ou registrar devolução
    * - DELIVERED → registrar devolução
    * - CANCELLED, EXPIRED, RETURNED → somente leitura (terminal)
@@ -233,14 +217,6 @@ export function OrderDetailsPage() {
 
           {canConfirmPayment && (
             <>
-              <button
-                type="button"
-                disabled={actions.isBusy}
-                onClick={() => setShowExpireDialog(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-edge-strong bg-surface px-3 py-2 text-[11px] font-semibold text-heading shadow-sm transition hover:border-gray-400 active:scale-[0.98] disabled:opacity-50"
-              >
-                <ClockIcon className="h-3.5 w-3.5" /> Expirar pedido
-              </button>
               <button
                 type="button"
                 disabled={actions.isBusy}
@@ -373,18 +349,6 @@ export function OrderDetailsPage() {
           actions.clearError();
         }}
         onConfirm={handleCancel}
-      />
-
-      <ExpireOrderDialog
-        open={showExpireDialog}
-        order={order}
-        isSubmitting={actions.isExpiring}
-        error={actions.actionError}
-        onClose={() => {
-          setShowExpireDialog(false);
-          actions.clearError();
-        }}
-        onConfirm={handleExpire}
       />
 
       <DeliverOrderDialog
