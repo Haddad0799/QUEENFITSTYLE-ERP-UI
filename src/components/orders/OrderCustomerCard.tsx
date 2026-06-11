@@ -7,15 +7,11 @@ type Props = {
 };
 
 const buildWhatsappUrl = (phone: string) => {
+  // Remove todos os caracteres não numéricos (parênteses, espaços, hífens)
+  // antes de montar o link, evitando URLs inválidas no wa.me.
   const digits = phone.replace(/\D/g, '');
   if (!digits) return null;
-  /**
-   * Heurística para DDI: telefones brasileiros costumam vir com 10-11
-   * dígitos sem código do país. Quando for esse caso, prefixamos 55. Se
-   * já vier com mais dígitos, assumimos que o DDI já está embutido.
-   */
-  const normalized = digits.length <= 11 ? `55${digits}` : digits;
-  return `https://wa.me/${normalized}`;
+  return `https://wa.me/${digits}`;
 };
 
 export function OrderCustomerCard({ customer }: Props) {
