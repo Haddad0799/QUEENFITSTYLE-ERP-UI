@@ -153,6 +153,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             Importação
           </NavLink>
 
+          <span className="mt-4 mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-sidebar-muted">
+            Inventário
+          </span>
+
           <NavLink
             to="/stock"
             onClick={handleNavClick}

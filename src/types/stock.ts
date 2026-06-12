@@ -1,10 +1,9 @@
 /**
- * Visão geral — GET /erp/stock
+ * Estoque de um SKU dentro de um produto — GET /erp/stock/products
  */
-export type StockOverviewDTO = {
+export type StockSkuDTO = {
   skuId: number;
   skuCode: string;
-  productName: string;
   colorName: string | null;
   sizeName: string | null;
   quantity: number;
@@ -12,6 +11,25 @@ export type StockOverviewDTO = {
   available: number;
   minQuantity: number;
   lowStock: boolean;
+};
+
+/**
+ * Produto com visão de estoque agregada — GET /erp/stock/products
+ */
+export type StockProductDTO = {
+  productId: number;
+  productName: string;
+  primaryImageUrl: string | null;
+  hasLowStock: boolean;
+  skus: StockSkuDTO[];
+};
+
+export type PageResponseStockProductDTO = {
+  items: StockProductDTO[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 };
 
 /**

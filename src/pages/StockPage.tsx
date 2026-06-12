@@ -1,126 +1,79 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useStock } from '../hooks/stock/useStock';
-import { stockService } from '../services/stock';
-import { useToast } from '../components/toast/ToastProvider';
-import {
-  StockTable,
-  type StockMovementsState,
-} from '../components/stock/StockTable';
-import { InboundStockDialog } from '../components/stock/InboundStockDialog';
-import { RefreshCwIcon, TagIcon } from '../components/icons';
-import type { StockOverviewDTO } from '../types/stock';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DEFAULT_PAGE_SIZE } from '../config';
+import { useStockProducts } from '../hooks/stock/useStock';
+import { RefreshCwIcon } from '../components/icons';
+import type { StockProductDTO } from '../types/stock';
 
-/** Remove acentos e baixa a caixa para comparação tolerante na busca livre. */
-const normalize = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[0300-036f]/g, '')
-    .toLowerCase();
+const lowStockCount = (product: StockProductDTO) =>
+  product.skus.filter((sku) => sku.lowStock).length;
 
-const matchesQuery = (sku: StockOverviewDTO, query: string) => {
-  const fields = [sku.productName, sku.colorName, sku.sizeName, sku.skuCode];
-  return fields.some((field) => field && normalize(field).includes(query));
-};
-
-const EMPTY_MOVEMENTS: StockMovementsState = {
-  data: null,
-  isLoading: false,
-  error: null,
+const LowStockBadge = ({ product }: { product: StockProductDTO }) => {
+  if (!product.hasLowStock) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-300" />
+        Normal
+      </span>
+    );
+  }
+  const count = lowStockCount(product);
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500 dark:bg-rose-300" />
+      {count > 0 ? `${count} SKU(s) com estoque baixo` : 'Estoque baixo'}
+    </span>
+  );
 };
 
 export function StockPage() {
-  const toast = useToast();
-  const { data, isLoading, isRefetching, error, refetch } = useStock();
+  const navigate = useNavigate();
 
-  const [query, setQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
 
-  const [expandedSkuId, setExpandedSkuId] = useState<number | null>(null);
-  const [movements, setMovements] =
-    useState<StockMovementsState>(EMPTY_MOVEMENTS);
-
-  const [inboundTarget, setInboundTarget] = useState<StockOverviewDTO | null>(
-    null,
-  );
-  const [isSubmittingInbound, setIsSubmittingInbound] = useState(false);
-  const [inboundError, setInboundError] = useState<string | null>(null);
-
-  const items = useMemo(() => {
-    const all = data ?? [];
-    const normalized = normalize(query.trim());
-    if (!normalized) return all;
-    return all.filter((sku) => matchesQuery(sku, normalized));
-  }, [data, query]);
-
-  const loadMovements = useCallback(async (skuId: number) => {
-    setMovements({ data: null, isLoading: true, error: null });
-    try {
-      const response = await stockService.movements(skuId);
-      setMovements({ data: response, isLoading: false, error: null });
-    } catch (err) {
-      setMovements({
-        data: null,
-        isLoading: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : 'Erro ao carregar movimentações.',
-      });
-    }
-  }, []);
-
-  const handleToggleRow = useCallback(
-    (sku: StockOverviewDTO) => {
-      if (expandedSkuId === sku.skuId) {
-        setExpandedSkuId(null);
-        setMovements(EMPTY_MOVEMENTS);
-        return;
+  // Debounce da busca livre para não disparar uma request por caractere.
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      if (searchInput !== search) {
+        setPage(0);
+        setSearch(searchInput);
       }
-      setExpandedSkuId(sku.skuId);
-      loadMovements(sku.skuId);
-    },
-    [expandedSkuId, loadMovements],
-  );
+    }, 300);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
-  const handleOpenInbound = useCallback((sku: StockOverviewDTO) => {
-    setInboundError(null);
-    setInboundTarget(sku);
-  }, []);
+  const { data, isLoading, isRefetching, error, refetch } = useStockProducts({
+    page,
+    size: DEFAULT_PAGE_SIZE,
+    search,
+  });
 
-  const handleConfirmInbound = async (quantity: number) => {
-    if (!inboundTarget) return;
-    setIsSubmittingInbound(true);
-    setInboundError(null);
-    try {
-      await stockService.inbound(inboundTarget.skuId, quantity);
-      toast.success(
-        'Estoque abastecido',
-        `Entrada de ${quantity} unidade(s) registrada para o SKU ${inboundTarget.skuCode}.`,
-      );
-      const skuId = inboundTarget.skuId;
-      setInboundTarget(null);
-      refetch();
-      if (expandedSkuId === skuId) {
-        loadMovements(skuId);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Tente novamente.';
-      setInboundError(message);
-      toast.error('Erro ao abastecer estoque', message);
-    } finally {
-      setIsSubmittingInbound(false);
-    }
-  };
+  const totalItems = data?.totalElements ?? 0;
+  const totalPages = data?.totalPages ?? 0;
+  const items = data?.items ?? [];
+
+  const canGoPrev = page > 0;
+  const canGoNext = totalPages > 0 && page < totalPages - 1;
+
+  const openProduct = (product: StockProductDTO) =>
+    navigate(`/stock/${product.productId}`, {
+      state: { productName: product.productName },
+    });
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h1 className="text-lg font-semibold text-heading sm:text-xl">
             Estoque
           </h1>
           <p className="text-xs text-muted">
-            Acompanhe a disponibilidade por SKU, registre abastecimentos e
-            consulte o histórico de movimentações.
+            Acompanhe a disponibilidade de estoque por produto e registre
+            abastecimentos.
           </p>
         </div>
 
@@ -135,55 +88,207 @@ export function StockPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-edge bg-surface p-3 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
-            Filtro
+      {/* Busca */}
+      <div className="flex flex-col gap-3 rounded-xl border border-edge bg-surface p-3 text-xs sm:flex-row sm:flex-wrap sm:items-center">
+        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
+          Busca
+        </span>
+
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Nome do produto"
+          className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-8 sm:w-auto sm:min-w-[240px]"
+        />
+
+        <div className="flex items-center gap-2 sm:ml-auto">
+          {isRefetching && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+              atualizando…
+            </span>
+          )}
+          <span className="text-[11px] text-faint">
+            {totalItems} resultado(s)
           </span>
-          <div className="relative flex-1 sm:max-w-xs">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Produto, cor, tamanho ou SKU"
-              className="h-8 w-full rounded-lg border border-edge-strong bg-surface-input pl-7 pr-2 text-[11px] text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25"
-            />
-            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-faint">
-              <TagIcon className="h-3.5 w-3.5" />
-            </span>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            {isRefetching && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-faint">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-                atualizando…
-              </span>
-            )}
-            <span className="text-[11px] text-faint">
-              {items.length} SKU(s)
-            </span>
-          </div>
         </div>
       </div>
 
-      <StockTable
-        items={items}
-        isLoading={isLoading}
-        error={error}
-        expandedSkuId={expandedSkuId}
-        movements={movements}
-        onToggleRow={handleToggleRow}
-        onInbound={handleOpenInbound}
-      />
+      {/* Product list — cards on mobile, table on md+ */}
+      <div className="overflow-hidden rounded-xl border border-edge bg-surface shadow-sm">
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto md:block">
+          <table className="min-w-full border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-edge bg-surface-alt text-[11px] uppercase tracking-[0.12em] text-muted">
+                <th className="px-4 py-3 text-left font-semibold">Produto</th>
+                <th className="px-4 py-3 text-left font-semibold">SKUs</th>
+                <th className="px-4 py-3 text-left font-semibold">Status</th>
+                <th className="px-4 py-3 text-right font-semibold">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-xs text-muted">
+                    Carregando estoque...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && error && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-xs text-danger">
+                    {error}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && items.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-xs text-muted">
+                    Nenhum produto encontrado com a busca atual.
+                  </td>
+                </tr>
+              )}
+              {!isLoading &&
+                !error &&
+                items.map((product) => (
+                  <tr
+                    key={product.productId}
+                    className="cursor-pointer border-t border-edge transition-colors hover:bg-surface-alt"
+                    onClick={() => openProduct(product)}
+                  >
+                    <td className="px-4 py-3 align-middle">
+                      <div className="flex items-center gap-3">
+                        {product.primaryImageUrl ? (
+                          <img
+                            src={product.primaryImageUrl}
+                            alt={product.productName}
+                            className="h-10 w-10 flex-shrink-0 rounded-lg border border-edge object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-edge bg-surface-alt text-[10px] text-faint">
+                            sem img
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-heading">
+                            {product.productName}
+                          </span>
+                          <span className="text-[11px] text-faint">
+                            ID #{product.productId}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-middle text-xs text-body">
+                      {product.skus.length} variação(ões)
+                    </td>
+                    <td className="px-4 py-3 align-middle">
+                      <LowStockBadge product={product} />
+                    </td>
+                    <td className="px-4 py-3 align-middle text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProduct(product);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
+                        >
+                          Ver estoque
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
 
-      {inboundTarget && (
-        <InboundStockDialog
-          sku={inboundTarget}
-          isSubmitting={isSubmittingInbound}
-          error={inboundError}
-          onClose={() => setInboundTarget(null)}
-          onConfirm={handleConfirmInbound}
-        />
-      )}
+        {/* Mobile cards */}
+        <div className="divide-y divide-edge md:hidden">
+          {isLoading && (
+            <div className="px-4 py-8 text-center text-sm text-muted">
+              Carregando estoque...
+            </div>
+          )}
+          {!isLoading && error && (
+            <div className="px-4 py-8 text-center text-sm text-danger">
+              {error}
+            </div>
+          )}
+          {!isLoading && !error && items.length === 0 && (
+            <div className="px-4 py-8 text-center text-sm text-muted">
+              Nenhum produto encontrado.
+            </div>
+          )}
+          {!isLoading &&
+            !error &&
+            items.map((product) => (
+              <button
+                key={product.productId}
+                type="button"
+                onClick={() => openProduct(product)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
+              >
+                {product.primaryImageUrl ? (
+                  <img
+                    src={product.primaryImageUrl}
+                    alt={product.productName}
+                    className="h-14 w-14 flex-shrink-0 rounded-xl border border-edge object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-edge bg-surface-alt text-[10px] text-faint">
+                    sem img
+                  </div>
+                )}
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="truncate text-sm font-medium text-heading">
+                    {product.productName}
+                  </span>
+                  <span className="text-[11px] text-muted">
+                    {product.skus.length} variação(ões)
+                  </span>
+                  <span className="w-fit">
+                    <LowStockBadge product={product} />
+                  </span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-faint"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            ))}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t border-edge bg-surface-alt px-4 py-3 text-[11px] text-muted">
+          <span>
+            Página{' '}
+            <span className="font-semibold text-heading">
+              {totalPages === 0 ? 0 : page + 1}
+            </span>{' '}
+            de{' '}
+            <span className="font-semibold text-heading">{totalPages}</span>
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={!canGoPrev}
+              onClick={() => canGoPrev && setPage((p) => Math.max(0, p - 1))}
+              className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              disabled={!canGoNext}
+              onClick={() =>
+                canGoNext && setPage((p) => (totalPages ? Math.min(totalPages - 1, p + 1) : p))
+              }
+              className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

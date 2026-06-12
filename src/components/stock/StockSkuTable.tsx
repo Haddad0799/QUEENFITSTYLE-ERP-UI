@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import type { StockMovementDTO, StockOverviewDTO } from '../../types/stock';
+import type { StockMovementDTO, StockSkuDTO } from '../../types/stock';
 import { StockStatusBadge } from './StockStatusBadge';
 import { StockMovementsPanel } from './StockMovementsPanel';
 import { ChevronDownIcon, InboxIcon, PlusIcon } from '../icons';
@@ -11,24 +11,12 @@ export type StockMovementsState = {
 };
 
 type Props = {
-  items: StockOverviewDTO[];
-  isLoading: boolean;
-  error: string | null;
+  skus: StockSkuDTO[];
   expandedSkuId: number | null;
   movements: StockMovementsState;
-  onToggleRow: (sku: StockOverviewDTO) => void;
-  onInbound: (sku: StockOverviewDTO) => void;
+  onToggleRow: (sku: StockSkuDTO) => void;
+  onInbound: (sku: StockSkuDTO) => void;
 };
-
-const SkeletonRow = ({ cols }: { cols: number }) => (
-  <tr className="border-t border-edge">
-    {Array.from({ length: cols }).map((_, i) => (
-      <td key={i} className="px-4 py-3">
-        <div className="h-3 w-full max-w-[100px] animate-pulse rounded bg-surface-alt" />
-      </td>
-    ))}
-  </tr>
-);
 
 const EmptyState = () => (
   <div className="mx-auto flex max-w-xs flex-col items-center gap-2">
@@ -39,24 +27,21 @@ const EmptyState = () => (
       Nenhum SKU encontrado
     </span>
     <span className="text-[11px] text-faint">
-      Ajuste o filtro ou cadastre produtos com variações.
+      Este produto ainda não possui variações com estoque.
     </span>
   </div>
 );
 
-export function StockTable({
-  items,
-  isLoading,
-  error,
+export function StockSkuTable({
+  skus,
   expandedSkuId,
   movements,
   onToggleRow,
   onInbound,
 }: Props) {
-  const isEmpty = !isLoading && !error && items.length === 0;
-  const colCount = 9;
+  const colCount = 8;
 
-  const inboundButton = (sku: StockOverviewDTO) => (
+  const inboundButton = (sku: StockSkuDTO) => (
     <button
       type="button"
       onClick={(e) => {
@@ -77,7 +62,6 @@ export function StockTable({
         <table className="min-w-full border-collapse text-xs">
           <thead>
             <tr className="border-b border-edge bg-surface-alt text-[11px] uppercase tracking-[0.12em] text-muted">
-              <th className="px-4 py-3 text-left font-semibold">Produto</th>
               <th className="px-4 py-3 text-left font-semibold">Cor</th>
               <th className="px-4 py-3 text-left font-semibold">Tamanho</th>
               <th className="px-4 py-3 text-left font-semibold">SKU</th>
@@ -89,24 +73,7 @@ export function StockTable({
             </tr>
           </thead>
           <tbody>
-            {isLoading && items.length === 0 && (
-              <>
-                <SkeletonRow cols={colCount} />
-                <SkeletonRow cols={colCount} />
-                <SkeletonRow cols={colCount} />
-              </>
-            )}
-            {!isLoading && error && (
-              <tr>
-                <td
-                  colSpan={colCount}
-                  className="px-4 py-8 text-center text-xs text-danger"
-                >
-                  {error}
-                </td>
-              </tr>
-            )}
-            {isEmpty && (
+            {skus.length === 0 && (
               <tr>
                 <td
                   colSpan={colCount}
@@ -116,7 +83,7 @@ export function StockTable({
                 </td>
               </tr>
             )}
-            {items.map((sku) => {
+            {skus.map((sku) => {
               const isExpanded = expandedSkuId === sku.skuId;
               return (
                 <Fragment key={sku.skuId}>
@@ -131,13 +98,10 @@ export function StockTable({
                             isExpanded ? 'rotate-180' : ''
                           }`}
                         />
-                        <span className="text-xs font-semibold text-heading">
-                          {sku.productName}
+                        <span className="text-xs font-medium text-heading">
+                          {sku.colorName ?? '—'}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 align-middle text-xs text-body">
-                      {sku.colorName ?? '—'}
                     </td>
                     <td className="px-4 py-3 align-middle text-xs text-body">
                       {sku.sizeName ?? '—'}
@@ -183,22 +147,12 @@ export function StockTable({
 
       {/* Mobile cards */}
       <div className="divide-y divide-edge md:hidden">
-        {isLoading && items.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-muted">
-            Carregando estoque...
-          </div>
-        )}
-        {!isLoading && error && (
-          <div className="px-4 py-8 text-center text-sm text-danger">
-            {error}
-          </div>
-        )}
-        {isEmpty && (
+        {skus.length === 0 && (
           <div className="px-4 py-10 text-center">
             <EmptyState />
           </div>
         )}
-        {items.map((sku) => {
+        {skus.map((sku) => {
           const isExpanded = expandedSkuId === sku.skuId;
           const variant = [sku.colorName, sku.sizeName]
             .filter(Boolean)
@@ -212,12 +166,9 @@ export function StockTable({
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate text-sm font-medium text-heading">
-                    {sku.productName}
+                    {variant || sku.skuCode}
                   </span>
-                  <span className="text-[11px] text-muted">
-                    {variant ? `${variant} · ` : ''}
-                    {sku.skuCode}
-                  </span>
+                  <span className="text-[11px] text-muted">{sku.skuCode}</span>
                   <span className="text-[11px] text-body">
                     Disponível:{' '}
                     <span className="font-semibold text-heading">

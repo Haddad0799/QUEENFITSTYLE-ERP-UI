@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { StockOverviewDTO } from '../../types/stock';
+import type { StockSkuDTO } from '../../types/stock';
 import { PackageIcon } from '../icons';
 
 type Props = {
-  sku: StockOverviewDTO;
+  sku: StockSkuDTO;
+  productName: string;
   isSubmitting: boolean;
   error: string | null;
   onConfirm: (quantity: number) => void;
@@ -16,6 +17,7 @@ type Props = {
  */
 export function InboundStockDialog({
   sku,
+  productName,
   isSubmitting,
   error,
   onConfirm,
@@ -57,7 +59,7 @@ export function InboundStockDialog({
         </div>
         <p className="mb-4 text-[11px] leading-relaxed text-label">
           Registrar entrada de estoque para{' '}
-          <span className="font-semibold text-heading">{sku.productName}</span>
+          <span className="font-semibold text-heading">{productName}</span>
           {variant && <> ({variant})</>} — SKU{' '}
           <span className="font-semibold text-heading">{sku.skuCode}</span>.
         </p>

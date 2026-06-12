@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { stockService } from '../../services/stock';
-import type { StockOverviewDTO } from '../../types/stock';
+import {
+  stockService,
+  type ListStockProductsParams,
+} from '../../services/stock';
+import type { PageResponseStockProductDTO } from '../../types/stock';
 
-export function useStock() {
-  const [data, setData] = useState<StockOverviewDTO[] | null>(null);
+export function useStockProducts({ page, size, search }: ListStockProductsParams) {
+  const [data, setData] = useState<PageResponseStockProductDTO | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const requestIdRef = useRef(0);
 
-  const fetchStock = useCallback(
+  const fetchProducts = useCallback(
     async (mode: 'initial' | 'refetch' = 'initial') => {
       const requestId = ++requestIdRef.current;
       if (mode === 'initial') setIsLoading(true);
@@ -18,7 +21,7 @@ export function useStock() {
       setError(null);
 
       try {
-        const response = await stockService.list();
+        const response = await stockService.listProducts({ page, size, search });
         if (requestId !== requestIdRef.current) return;
         setData(response);
       } catch (err) {
@@ -33,18 +36,18 @@ export function useStock() {
         }
       }
     },
-    [],
+    [page, size, search],
   );
 
   useEffect(() => {
-    fetchStock('initial');
-  }, [fetchStock]);
+    fetchProducts('initial');
+  }, [fetchProducts]);
 
   return {
     data,
     isLoading,
     isRefetching,
     error,
-    refetch: () => fetchStock('refetch'),
+    refetch: () => fetchProducts('refetch'),
   };
 }

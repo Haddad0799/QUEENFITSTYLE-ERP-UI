@@ -15,6 +15,7 @@ import { ProductCreatePage } from './pages/ProductCreatePage';
 import { ProductImportPage } from './pages/ProductImportPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { StockPage } from './pages/StockPage';
+import { StockProductDetailsPage } from './pages/StockProductDetailsPage';
 import { OrderDetailsPage } from './pages/OrderDetailsPage';
 import { LoginPage } from './pages/LoginPage';
 import { ToastProvider } from './components/toast/ToastProvider';
@@ -52,6 +53,10 @@ function App() {
                       />
                       <Route path="/categories" element={<CategoriesPage />} />
                       <Route path="/stock" element={<StockPage />} />
+                      <Route
+                        path="/stock/:id"
+                        element={<StockProductDetailsPage />}
+                      />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route
                         path="/orders/:id"
