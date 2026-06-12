@@ -3,20 +3,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api-client';
 import { stockService } from '../services/stock';
 import { useToast } from '../components/toast/ToastProvider';
-import {
-  StockSkuTable,
-  type StockMovementsState,
-} from '../components/stock/StockSkuTable';
+import { StockColorList } from '../components/stock/StockColorList';
+import { StockSkuTable } from '../components/stock/StockSkuTable';
 import { InboundStockDialog } from '../components/stock/InboundStockDialog';
 import { RefreshCwIcon } from '../components/icons';
 import type { ProductDetailsDTO } from '../types/products';
-import type { StockProductDTO, StockSkuDTO } from '../types/stock';
-
-const EMPTY_MOVEMENTS: StockMovementsState = {
-  data: null,
-  isLoading: false,
-  error: null,
-};
+import type {
+  StockColorDTO,
+  StockProductDTO,
+  StockSkuDTO,
+} from '../types/stock';
 
 /**
  * Não há endpoint de estoque por produto, então localizamos o produto na
@@ -64,9 +60,11 @@ export function StockProductDetailsPage() {
   const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [expandedSkuId, setExpandedSkuId] = useState<number | null>(null);
-  const [movements, setMovements] =
-    useState<StockMovementsState>(EMPTY_MOVEMENTS);
+  // Nível 3: a cor selecionada é derivada do produto a cada render para que
+  // os números reflitam o estado mais recente após um refetch.
+  const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
+  const selectedColor =
+    product?.colors.find((color) => color.colorId === selectedColorId) ?? null;
 
   const [inboundTarget, setInboundTarget] = useState<StockSkuDTO | null>(null);
   const [isSubmittingInbound, setIsSubmittingInbound] = useState(false);
@@ -103,35 +101,11 @@ export function StockProductDetailsPage() {
     load('initial');
   }, [load]);
 
-  const loadMovements = useCallback(async (skuId: number) => {
-    setMovements({ data: null, isLoading: true, error: null });
-    try {
-      const response = await stockService.movements(skuId);
-      setMovements({ data: response, isLoading: false, error: null });
-    } catch (err) {
-      setMovements({
-        data: null,
-        isLoading: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : 'Erro ao carregar movimentações.',
-      });
-    }
-  }, []);
-
-  const handleToggleRow = useCallback(
-    (sku: StockSkuDTO) => {
-      if (expandedSkuId === sku.skuId) {
-        setExpandedSkuId(null);
-        setMovements(EMPTY_MOVEMENTS);
-        return;
-      }
-      setExpandedSkuId(sku.skuId);
-      loadMovements(sku.skuId);
-    },
-    [expandedSkuId, loadMovements],
-  );
+  const handleSelectColor = (color: StockColorDTO) => {
+    setSelectedColorId((current) =>
+      current === color.colorId ? null : color.colorId,
+    );
+  };
 
   const handleConfirmInbound = async (quantity: number) => {
     if (!inboundTarget) return;
@@ -143,12 +117,8 @@ export function StockProductDetailsPage() {
         'Estoque abastecido',
         `Entrada de ${quantity} unidade(s) registrada para o SKU ${inboundTarget.skuCode}.`,
       );
-      const skuId = inboundTarget.skuId;
       setInboundTarget(null);
       load('refetch');
-      if (expandedSkuId === skuId) {
-        loadMovements(skuId);
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Tente novamente.';
       setInboundError(message);
@@ -198,7 +168,7 @@ export function StockProductDetailsPage() {
               </h1>
               {product && (
                 <p className="text-[11px] text-muted">
-                  ID #{product.productId} • {product.skus.length} variação(ões)
+                  ID #{product.productId} • {product.colors.length} cor(es)
                 </p>
               )}
             </div>
@@ -235,22 +205,48 @@ export function StockProductDetailsPage() {
       )}
 
       {!isLoading && !error && product && (
-        <StockSkuTable
-          skus={product.skus}
-          expandedSkuId={expandedSkuId}
-          movements={movements}
-          onToggleRow={handleToggleRow}
-          onInbound={(sku) => {
-            setInboundError(null);
-            setInboundTarget(sku);
-          }}
-        />
+        <>
+          {/* Nível 2 — cores do produto */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
+              Cores
+            </span>
+            <StockColorList
+              colors={product.colors}
+              selectedColorId={selectedColorId}
+              onSelect={handleSelectColor}
+            />
+          </div>
+
+          {/* Nível 3 — SKUs da cor selecionada */}
+          {selectedColor && (
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
+                Tamanhos de {selectedColor.colorName}
+              </span>
+              <StockSkuTable
+                skus={selectedColor.skus}
+                onInbound={(sku) => {
+                  setInboundError(null);
+                  setInboundTarget(sku);
+                }}
+              />
+            </div>
+          )}
+
+          {!selectedColor && product.colors.length > 0 && (
+            <p className="text-[11px] text-faint">
+              Selecione uma cor para ver o estoque por tamanho.
+            </p>
+          )}
+        </>
       )}
 
-      {inboundTarget && product && (
+      {inboundTarget && product && selectedColor && (
         <InboundStockDialog
           sku={inboundTarget}
           productName={product.productName}
+          colorName={selectedColor.colorName}
           isSubmitting={isSubmittingInbound}
           error={inboundError}
           onClose={() => setInboundTarget(null)}

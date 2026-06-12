@@ -2,29 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { useStockProducts } from '../hooks/stock/useStock';
+import { StockStatusBadge } from '../components/stock/StockStatusBadge';
 import { RefreshCwIcon } from '../components/icons';
 import type { StockProductDTO } from '../types/stock';
-
-const lowStockCount = (product: StockProductDTO) =>
-  product.skus.filter((sku) => sku.lowStock).length;
-
-const LowStockBadge = ({ product }: { product: StockProductDTO }) => {
-  if (!product.hasLowStock) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-300" />
-        Normal
-      </span>
-    );
-  }
-  const count = lowStockCount(product);
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500 dark:bg-rose-300" />
-      {count > 0 ? `${count} SKU(s) com estoque baixo` : 'Estoque baixo'}
-    </span>
-  );
-};
 
 export function StockPage() {
   const navigate = useNavigate();
@@ -122,7 +102,7 @@ export function StockPage() {
             <thead>
               <tr className="border-b border-edge bg-surface-alt text-[11px] uppercase tracking-[0.12em] text-muted">
                 <th className="px-4 py-3 text-left font-semibold">Produto</th>
-                <th className="px-4 py-3 text-left font-semibold">SKUs</th>
+                <th className="px-4 py-3 text-left font-semibold">Cores</th>
                 <th className="px-4 py-3 text-left font-semibold">Status</th>
                 <th className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
@@ -181,10 +161,10 @@ export function StockPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 align-middle text-xs text-body">
-                      {product.skus.length} variação(ões)
+                      {product.colors.length} cor(es)
                     </td>
                     <td className="px-4 py-3 align-middle">
-                      <LowStockBadge product={product} />
+                      <StockStatusBadge lowStock={product.hasLowStock} />
                     </td>
                     <td className="px-4 py-3 align-middle text-right">
                       <div className="flex justify-end gap-1.5">
@@ -195,7 +175,7 @@ export function StockPage() {
                           }}
                           className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
                         >
-                          Ver estoque
+                          Ver cores
                         </button>
                       </div>
                     </td>
@@ -247,10 +227,10 @@ export function StockPage() {
                     {product.productName}
                   </span>
                   <span className="text-[11px] text-muted">
-                    {product.skus.length} variação(ões)
+                    {product.colors.length} cor(es)
                   </span>
                   <span className="w-fit">
-                    <LowStockBadge product={product} />
+                    <StockStatusBadge lowStock={product.hasLowStock} />
                   </span>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-faint"><polyline points="9 18 15 12 9 6"/></svg>

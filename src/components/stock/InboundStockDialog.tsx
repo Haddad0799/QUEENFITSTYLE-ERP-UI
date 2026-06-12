@@ -5,6 +5,7 @@ import { PackageIcon } from '../icons';
 type Props = {
   sku: StockSkuDTO;
   productName: string;
+  colorName: string;
   isSubmitting: boolean;
   error: string | null;
   onConfirm: (quantity: number) => void;
@@ -18,6 +19,7 @@ type Props = {
 export function InboundStockDialog({
   sku,
   productName,
+  colorName,
   isSubmitting,
   error,
   onConfirm,
@@ -36,7 +38,7 @@ export function InboundStockDialog({
     onConfirm(value);
   };
 
-  const variant = [sku.colorName, sku.sizeName].filter(Boolean).join(' · ');
+  const variant = [colorName, sku.sizeName].filter(Boolean).join(' · ');
 
   return (
     <div

@@ -1,8 +1,5 @@
 import { apiClient } from '../lib/api-client';
-import type {
-  PageResponseStockProductDTO,
-  StockMovementDTO,
-} from '../types/stock';
+import type { PageResponseStockProductDTO } from '../types/stock';
 
 export type ListStockProductsParams = {
   page: number;
@@ -17,9 +14,6 @@ export const stockService = {
       size: params.size,
       search: params.search?.trim() || undefined,
     }),
-
-  movements: (skuId: number) =>
-    apiClient.get<StockMovementDTO[]>(`/erp/skus/${skuId}/stock/movements`),
 
   inbound: (skuId: number, quantity: number) =>
     apiClient.post<void>(`/erp/skus/${skuId}/stock/inbound`, { quantity }),

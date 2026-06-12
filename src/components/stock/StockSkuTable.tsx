@@ -1,20 +1,9 @@
-import { Fragment } from 'react';
-import type { StockMovementDTO, StockSkuDTO } from '../../types/stock';
+import type { StockSkuDTO } from '../../types/stock';
 import { StockStatusBadge } from './StockStatusBadge';
-import { StockMovementsPanel } from './StockMovementsPanel';
-import { ChevronDownIcon, InboxIcon, PlusIcon } from '../icons';
-
-export type StockMovementsState = {
-  data: StockMovementDTO[] | null;
-  isLoading: boolean;
-  error: string | null;
-};
+import { InboxIcon, PlusIcon } from '../icons';
 
 type Props = {
   skus: StockSkuDTO[];
-  expandedSkuId: number | null;
-  movements: StockMovementsState;
-  onToggleRow: (sku: StockSkuDTO) => void;
   onInbound: (sku: StockSkuDTO) => void;
 };
 
@@ -27,27 +16,18 @@ const EmptyState = () => (
       Nenhum SKU encontrado
     </span>
     <span className="text-[11px] text-faint">
-      Este produto ainda não possui variações com estoque.
+      Esta cor ainda não possui tamanhos com estoque.
     </span>
   </div>
 );
 
-export function StockSkuTable({
-  skus,
-  expandedSkuId,
-  movements,
-  onToggleRow,
-  onInbound,
-}: Props) {
-  const colCount = 8;
+export function StockSkuTable({ skus, onInbound }: Props) {
+  const colCount = 7;
 
   const inboundButton = (sku: StockSkuDTO) => (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onInbound(sku);
-      }}
+      onClick={() => onInbound(sku)}
       className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
     >
       <PlusIcon className="h-3 w-3" />
@@ -62,7 +42,6 @@ export function StockSkuTable({
         <table className="min-w-full border-collapse text-xs">
           <thead>
             <tr className="border-b border-edge bg-surface-alt text-[11px] uppercase tracking-[0.12em] text-muted">
-              <th className="px-4 py-3 text-left font-semibold">Cor</th>
               <th className="px-4 py-3 text-left font-semibold">Tamanho</th>
               <th className="px-4 py-3 text-left font-semibold">SKU</th>
               <th className="px-4 py-3 text-right font-semibold">Disponível</th>
@@ -83,64 +62,36 @@ export function StockSkuTable({
                 </td>
               </tr>
             )}
-            {skus.map((sku) => {
-              const isExpanded = expandedSkuId === sku.skuId;
-              return (
-                <Fragment key={sku.skuId}>
-                  <tr
-                    className="cursor-pointer border-t border-edge transition-colors hover:bg-surface-alt"
-                    onClick={() => onToggleRow(sku)}
-                  >
-                    <td className="px-4 py-3 align-middle">
-                      <div className="flex items-center gap-2">
-                        <ChevronDownIcon
-                          className={`h-3.5 w-3.5 flex-shrink-0 text-faint transition-transform ${
-                            isExpanded ? 'rotate-180' : ''
-                          }`}
-                        />
-                        <span className="text-xs font-medium text-heading">
-                          {sku.colorName ?? '—'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-middle text-xs text-body">
-                      {sku.sizeName ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 align-middle text-[11px] text-muted">
-                      {sku.skuCode}
-                    </td>
-                    <td className="px-4 py-3 align-middle text-right text-xs font-semibold text-heading tabular-nums">
-                      {sku.available}
-                    </td>
-                    <td className="px-4 py-3 align-middle text-right text-xs text-body tabular-nums">
-                      {sku.reserved}
-                    </td>
-                    <td className="px-4 py-3 align-middle text-right text-xs text-body tabular-nums">
-                      {sku.quantity}
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <StockStatusBadge lowStock={sku.lowStock} />
-                    </td>
-                    <td className="px-4 py-3 align-middle text-right">
-                      <div className="flex items-center justify-end">
-                        {inboundButton(sku)}
-                      </div>
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="border-t border-edge bg-surface-alt/50">
-                      <td colSpan={colCount} className="p-0">
-                        <StockMovementsPanel
-                          movements={movements.data}
-                          isLoading={movements.isLoading}
-                          error={movements.error}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
+            {skus.map((sku) => (
+              <tr
+                key={sku.skuId}
+                className="border-t border-edge transition-colors hover:bg-surface-alt"
+              >
+                <td className="px-4 py-3 align-middle text-xs font-medium text-heading">
+                  {sku.sizeName ?? '—'}
+                </td>
+                <td className="px-4 py-3 align-middle text-[11px] text-muted">
+                  {sku.skuCode}
+                </td>
+                <td className="px-4 py-3 align-middle text-right text-xs font-semibold text-heading tabular-nums">
+                  {sku.available}
+                </td>
+                <td className="px-4 py-3 align-middle text-right text-xs text-body tabular-nums">
+                  {sku.reserved}
+                </td>
+                <td className="px-4 py-3 align-middle text-right text-xs text-body tabular-nums">
+                  {sku.quantity}
+                </td>
+                <td className="px-4 py-3 align-middle">
+                  <StockStatusBadge lowStock={sku.lowStock} />
+                </td>
+                <td className="px-4 py-3 align-middle text-right">
+                  <div className="flex items-center justify-end">
+                    {inboundButton(sku)}
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -152,53 +103,30 @@ export function StockSkuTable({
             <EmptyState />
           </div>
         )}
-        {skus.map((sku) => {
-          const isExpanded = expandedSkuId === sku.skuId;
-          const variant = [sku.colorName, sku.sizeName]
-            .filter(Boolean)
-            .join(' · ');
-          return (
-            <div key={sku.skuId}>
-              {/* div clicável (não <button>) para permitir o botão Abastecer aninhado */}
-              <div
-                onClick={() => onToggleRow(sku)}
-                className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
-              >
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="truncate text-sm font-medium text-heading">
-                    {variant || sku.skuCode}
-                  </span>
-                  <span className="text-[11px] text-muted">{sku.skuCode}</span>
-                  <span className="text-[11px] text-body">
-                    Disponível:{' '}
-                    <span className="font-semibold text-heading">
-                      {sku.available}
-                    </span>{' '}
-                    · Reservado: {sku.reserved} · Total: {sku.quantity}
-                  </span>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                    <StockStatusBadge lowStock={sku.lowStock} />
-                    {inboundButton(sku)}
-                  </div>
-                </div>
-                <ChevronDownIcon
-                  className={`mt-1 h-4 w-4 flex-shrink-0 text-faint transition-transform ${
-                    isExpanded ? 'rotate-180' : ''
-                  }`}
-                />
+        {skus.map((sku) => (
+          <div
+            key={sku.skuId}
+            className="flex w-full items-start gap-3 px-4 py-3 text-left"
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="truncate text-sm font-medium text-heading">
+                {sku.sizeName ?? sku.skuCode}
+              </span>
+              <span className="text-[11px] text-muted">{sku.skuCode}</span>
+              <span className="text-[11px] text-body">
+                Disponível:{' '}
+                <span className="font-semibold text-heading">
+                  {sku.available}
+                </span>{' '}
+                · Reservado: {sku.reserved} · Total: {sku.quantity}
+              </span>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                <StockStatusBadge lowStock={sku.lowStock} />
+                {inboundButton(sku)}
               </div>
-              {isExpanded && (
-                <div className="border-t border-edge bg-surface-alt/50">
-                  <StockMovementsPanel
-                    movements={movements.data}
-                    isLoading={movements.isLoading}
-                    error={movements.error}
-                  />
-                </div>
-              )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
