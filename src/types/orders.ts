@@ -89,6 +89,7 @@ export type OrderReservationStatus =
   | 'RESERVED'
   | 'CONFIRMED'
   | 'RELEASED'
+  | 'CANCELLED'
   | 'EXPIRED'
   | 'RETURNED'
   | (string & {});

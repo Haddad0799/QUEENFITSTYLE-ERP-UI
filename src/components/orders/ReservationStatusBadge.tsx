@@ -25,6 +25,12 @@ const META: Record<string, Meta> = {
       'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-200 dark:border-blue-500/40',
     dot: 'bg-blue-500',
   },
+  CANCELLED: {
+    label: 'Cancelada',
+    styles:
+      'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/40',
+    dot: 'bg-rose-500',
+  },
   EXPIRED: {
     label: 'Expirada',
     styles:
