@@ -4,6 +4,7 @@ import { DEFAULT_PAGE_SIZE } from '../config';
 import { apiClient } from '../lib/api-client';
 import { extractCategories } from '../lib/category-utils';
 import { DownloadIcon } from '../components/icons';
+import { useToast } from '../components/toast/ToastProvider';
 import type {
   PageResponseProductSummaryDTO,
   ProductStatus,
@@ -15,6 +16,28 @@ type Filters = {
   status?: ProductStatus | '';
   categoryId?: number | '';
 };
+
+/**
+ * Visualização de status: controla a presença de arquivados na listagem.
+ * - active: comportamento padrão (backend já omite arquivados)
+ * - archived: apenas arquivados (status=ARCHIVED)
+ * - all: ativos + arquivados (includeArchived=true)
+ */
+type ProductView = 'active' | 'archived' | 'all';
+
+const PRODUCT_VIEW_OPTIONS: { value: ProductView; label: string }[] = [
+  { value: 'active', label: 'Ativos' },
+  { value: 'archived', label: 'Arquivados' },
+  { value: 'all', label: 'Todos' },
+];
+
+/** Status selecionáveis no filtro manual. Arquivados são controlados pela visualização. */
+const SELECTABLE_STATUSES: ProductStatus[] = [
+  'DRAFT',
+  'READY_FOR_SALE',
+  'PUBLISHED',
+  'INACTIVE',
+];
 
 const isLaunchProduct = (product: Pick<ProductSummaryDTO, 'launch' | 'isLaunch'>) =>
   Boolean(product.launch ?? product.isLaunch);
@@ -39,7 +62,9 @@ const STATUS_BADGE: Record<ProductStatus, string> = {
 
 export function ProductsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [filters, setFilters] = useState<Filters>({});
+  const [view, setView] = useState<ProductView>('active');
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,14 +81,20 @@ export function ProductsPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const params: Record<string, unknown> = {
+        status: filters.status || undefined,
+        categoryId: filters.categoryId || undefined,
+        page,
+        size: DEFAULT_PAGE_SIZE,
+      };
+      if (view === 'archived') {
+        params.status = 'ARCHIVED';
+      } else if (view === 'all') {
+        params.includeArchived = true;
+      }
       const response = await apiClient.get<PageResponseProductSummaryDTO>(
         '/erp/products',
-        {
-          status: filters.status || undefined,
-          categoryId: filters.categoryId || undefined,
-          page,
-          size: DEFAULT_PAGE_SIZE,
-        },
+        params,
       );
       setData(response);
     } catch (err) {
@@ -91,7 +122,12 @@ export function ProductsPage() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters.status, filters.categoryId]);
+  }, [page, view, filters.status, filters.categoryId]);
+
+  const handleViewChange = (value: string) => {
+    setPage(0);
+    setView(value as ProductView);
+  };
 
   const handleStatusChange = (value: string) => {
     setPage(0);
@@ -113,10 +149,13 @@ export function ProductsPage() {
     try {
       await apiClient.delete(`/erp/products/${deleteTarget.id}`);
       setDeleteTarget(null);
+      toast.success('Produto removido');
       loadProducts();
     } catch (err) {
+      // O backend devolve uma mensagem amigável (ex.: 409 para produto
+      // publicado); exibimos exatamente ela no modal.
       setDeleteError(
-        err instanceof Error ? err.message : 'Erro ao excluir produto.',
+        err instanceof Error ? err.message : 'Erro ao remover produto.',
       );
     } finally {
       setIsDeleting(false);
@@ -171,14 +210,25 @@ export function ProductsPage() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <select
+            value={view}
+            onChange={(e) => handleViewChange(e.target.value)}
+            className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-8 sm:w-auto sm:min-w-[140px]"
+          >
+            {PRODUCT_VIEW_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={filters.status ?? ''}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-8 sm:w-auto sm:min-w-[180px]"
+            disabled={view === 'archived'}
+            className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-auto sm:min-w-[180px]"
           >
             <option value="">Todos os status</option>
-            {(
-              ['DRAFT', 'READY_FOR_SALE', 'PUBLISHED', 'INACTIVE', 'ARCHIVED'] as ProductStatus[]
-            ).map((status) => (
+            {SELECTABLE_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {STATUS_LABEL[status]}
               </option>
@@ -282,22 +332,28 @@ export function ProductsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 align-middle text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          onClick={() => navigate(`/products/${product.id}`)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
-                        >
-                          Detalhes
-                        </button>
-                        {product.status !== 'PUBLISHED' && (
+                      {product.status === 'ARCHIVED' ? (
+                        <span className="text-[11px] text-faint">
+                          Somente leitura
+                        </span>
+                      ) : (
+                        <div className="flex justify-end gap-1.5">
                           <button
-                            onClick={() => { setDeleteError(null); setDeleteTarget(product); }}
-                            className="inline-flex items-center rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-danger-action hover:text-danger"
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
                           >
-                            Excluir
+                            Detalhes
                           </button>
-                        )}
-                      </div>
+                          {product.status !== 'PUBLISHED' && (
+                            <button
+                              onClick={() => { setDeleteError(null); setDeleteTarget(product); }}
+                              className="inline-flex items-center rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-danger-action hover:text-danger"
+                            >
+                              Excluir
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -324,57 +380,78 @@ export function ProductsPage() {
           )}
           {!isLoading &&
             !error &&
-            items.map((product: ProductSummaryDTO) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => navigate(`/products/${product.id}`)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
-              >
-                {product.mainImageUrl ? (
-                  <img
-                    src={product.mainImageUrl}
-                    alt={product.name}
-                    className="h-14 w-14 flex-shrink-0 rounded-xl border border-edge object-cover"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-edge bg-surface-alt text-[10px] text-faint">
-                    sem img
-                  </div>
-                )}
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-medium text-heading">
-                      {product.name}
-                    </span>
-                    {isLaunchProduct(product) && (
-                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                        Lançamento
+            items.map((product: ProductSummaryDTO) => {
+              const isArchived = product.status === 'ARCHIVED';
+              const content = (
+                <>
+                  {product.mainImageUrl ? (
+                    <img
+                      src={product.mainImageUrl}
+                      alt={product.name}
+                      className="h-14 w-14 flex-shrink-0 rounded-xl border border-edge object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-edge bg-surface-alt text-[10px] text-faint">
+                      sem img
+                    </div>
+                  )}
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-medium text-heading">
+                        {product.name}
                       </span>
-                    )}
+                      {isLaunchProduct(product) && (
+                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          Lançamento
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted">
+                      {product.categoryName}
+                    </span>
+                    <span className={`inline-flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGE[product.status]}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                      {STATUS_LABEL[product.status]}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-muted">
-                    {product.categoryName}
-                  </span>
-                  <span className={`inline-flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGE[product.status]}`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
-                    {STATUS_LABEL[product.status]}
-                  </span>
-                </div>
-                {product.status !== 'PUBLISHED' && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setDeleteError(null); setDeleteTarget(product); }}
-                    className="flex-shrink-0 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[10px] font-medium text-danger transition hover:border-danger-action active:scale-[0.97]"
+                </>
+              );
+
+              // Arquivados: somente leitura, sem navegação nem ações.
+              if (isArchived) {
+                return (
+                  <div
+                    key={product.id}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left"
                   >
-                    Excluir
-                  </button>
-                )}
-                {product.status === 'PUBLISHED' && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-faint"><polyline points="9 18 15 12 9 6"/></svg>
-                )}
-              </button>
-            ))}
+                    {content}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => navigate(`/products/${product.id}`)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
+                >
+                  {content}
+                  {product.status !== 'PUBLISHED' && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setDeleteError(null); setDeleteTarget(product); }}
+                      className="flex-shrink-0 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[10px] font-medium text-danger transition hover:border-danger-action active:scale-[0.97]"
+                    >
+                      Excluir
+                    </button>
+                  )}
+                  {product.status === 'PUBLISHED' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-faint"><polyline points="9 18 15 12 9 6"/></svg>
+                  )}
+                </button>
+              );
+            })}
         </div>
 
         {/* Pagination */}

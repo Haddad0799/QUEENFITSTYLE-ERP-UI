@@ -10,6 +10,7 @@ import { extractCategories, getLeafCategoryOptions } from '../lib/category-utils
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { ProductStatusSection } from '../components/ProductStatusSection';
 import { XIcon } from '../components/icons';
+import { useToast } from '../components/toast/ToastProvider';
 import type {
   ProductDetailsDTO,
   ProductStatus,
@@ -57,6 +58,35 @@ const SKU_STATUS_BADGE: Record<SkuStatus, string> = {
   DISCONTINUED: 'bg-gray-100 text-gray-500 border-gray-200 dark:border-gray-600 dark:bg-gray-900/80 dark:text-gray-400',
 };
 
+/**
+ * Visualização de status dos SKUs: controla a presença de descontinuados.
+ * - active: comportamento padrão (backend já omite descontinuados)
+ * - discontinued: apenas descontinuados (status=DISCONTINUED)
+ * - all: ativos + descontinuados (includeArchived=true)
+ */
+type SkuView = 'active' | 'discontinued' | 'all';
+
+const SKU_VIEW_OPTIONS: { value: SkuView; label: string }[] = [
+  { value: 'active', label: 'Ativos' },
+  { value: 'discontinued', label: 'Descontinuados' },
+  { value: 'all', label: 'Todos' },
+];
+
+/** Status selecionáveis no filtro manual. Descontinuados são controlados pela visualização. */
+const SELECTABLE_SKU_STATUSES: SkuStatus[] = [
+  'INCOMPLETE',
+  'READY',
+  'PUBLISHED',
+  'BLOCKED',
+];
+
+/**
+ * SKUs publicados e descontinuados não permitem ações (seleção, exclusão ou
+ * edição). Descontinuados são apenas consulta histórica.
+ */
+const isSkuActionable = (status: SkuStatus | string) =>
+  status !== 'PUBLISHED' && status !== 'DISCONTINUED';
+
 export function ProductDetailsPage() {
     const [isPublishing, setIsPublishing] = useState(false);
     const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
@@ -84,6 +114,7 @@ export function ProductDetailsPage() {
     };
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [data, setData] = useState<ProductDetailsDTO | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +162,7 @@ export function ProductDetailsPage() {
     colorId?: number | '';
     sizeId?: number | '';
   }>({});
+  const [skuView, setSkuView] = useState<SkuView>('active');
   const [skusItems, setSkusItems] = useState<SkuSummaryDTO[]>([]);
   const [isLoadingSkus, setIsLoadingSkus] = useState(false);
   const [skuPage, setSkuPage] = useState(0);
@@ -326,7 +358,10 @@ export function ProductDetailsPage() {
         totalElements: number;
         totalPages: number;
       }>(`/erp/products/${productId}/skus`, {
-        status: skuFilters.status || undefined,
+        ...(skuView === 'discontinued'
+          ? { status: 'DISCONTINUED' }
+          : { status: skuFilters.status || undefined }),
+        ...(skuView === 'all' ? { includeArchived: true } : {}),
         colorId: skuFilters.colorId || undefined,
         sizeId: skuFilters.sizeId || undefined,
         page: skuPage,
@@ -347,7 +382,7 @@ export function ProductDetailsPage() {
     setSelectedSkuIds(new Set());
     fetchSkus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skuFilters, data, skuPage]);
+  }, [skuFilters, skuView, data, skuPage]);
 
   // carregar cores e tamanhos auxiliares quando abrir tela
   useEffect(() => {
@@ -605,13 +640,15 @@ export function ProductDetailsPage() {
         return next;
       });
       handleCloseSkuDetails();
+      toast.success('SKU removido');
       // refresh product data
       const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
       setData(refreshed);
       fetchSkus();
     } catch (err) {
+      // Mensagem amigável do backend (ex.: 409 para SKU publicado).
       setDeleteSkuError(
-        err instanceof Error ? err.message : 'Erro ao excluir SKU.',
+        err instanceof Error ? err.message : 'Erro ao remover SKU.',
       );
     } finally {
       setIsDeletingSku(false);
@@ -621,13 +658,13 @@ export function ProductDetailsPage() {
   // batch selection helpers
   const deletableSelectedSkus = useMemo(() => {
     return skusItems.filter(
-      (s) => selectedSkuIds.has(s.id) && s.status !== 'PUBLISHED',
+      (s) => selectedSkuIds.has(s.id) && isSkuActionable(s.status),
     );
   }, [skusItems, selectedSkuIds]);
 
   const nonDeletableCount = useMemo(() => {
     return skusItems.filter(
-      (s) => selectedSkuIds.has(s.id) && s.status === 'PUBLISHED',
+      (s) => selectedSkuIds.has(s.id) && !isSkuActionable(s.status),
     ).length;
   }, [skusItems, selectedSkuIds]);
 
@@ -643,7 +680,7 @@ export function ProductDetailsPage() {
 
   const toggleSelectAllSkus = () => {
     const selectableIds = skusItems
-      .filter((s) => s.status !== 'PUBLISHED')
+      .filter((s) => isSkuActionable(s.status))
       .map((s) => s.id);
     const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedSkuIds.has(id));
     if (allSelected) {
@@ -660,14 +697,19 @@ export function ProductDetailsPage() {
     try {
       const skuIds = deletableSelectedSkus.map((s) => s.id);
       await apiClient.post(`/erp/products/${productId}/skus/batch-delete`, { skuIds });
+      const removedCount = skuIds.length;
       setSelectedSkuIds(new Set());
       setShowBatchDeleteConfirm(false);
+      toast.success(
+        removedCount > 1 ? `${removedCount} SKUs removidos` : 'SKU removido',
+      );
       const refreshed = await apiClient.get<ProductDetailsDTO>(`/erp/products/${productId}`);
       setData(refreshed);
       fetchSkus();
     } catch (err) {
+      // Mensagem amigável do backend (ex.: 409 por bloqueio de exclusão).
       setBatchDeleteError(
-        err instanceof Error ? err.message : 'Erro ao excluir SKUs.',
+        err instanceof Error ? err.message : 'Erro ao remover SKUs.',
       );
     } finally {
       setIsDeletingBatch(false);
@@ -1531,17 +1573,31 @@ export function ProductDetailsPage() {
 
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <select
+                  value={skuView}
+                  onChange={(e) => {
+                    setSkuView(e.target.value as SkuView);
+                    setSkuPage(0);
+                  }}
+                  className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none sm:h-8 sm:w-auto sm:min-w-[140px]"
+                >
+                  {SKU_VIEW_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
                   value={skuFilters.status ?? ''}
                   onChange={(e) => {
                     setSkuFilters((prev) => ({ ...prev, status: e.target.value as SkuStatus | '' }));
                     setSkuPage(0);
                   }}
-                  className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none sm:h-8 sm:w-auto sm:min-w-[140px]"
+                  disabled={skuView === 'discontinued'}
+                  className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-auto sm:min-w-[140px]"
                 >
                   <option value="">Todos os status</option>
-                  {(
-                    ['INCOMPLETE', 'READY', 'PUBLISHED', 'BLOCKED', 'DISCONTINUED'] as SkuStatus[]
-                  ).map((s) => (
+                  {SELECTABLE_SKU_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {SKU_STATUS_LABEL[s]}
                     </option>
@@ -1624,22 +1680,31 @@ export function ProductDetailsPage() {
                       lastColor = sku.colorName;
                       const isSelected = selectedSkuIds.has(sku.id);
                       const isPublished = sku.status === 'PUBLISHED';
+                      const isDiscontinued = sku.status === 'DISCONTINUED';
+                      // Descontinuados são somente leitura: sem seleção, sem abrir detalhes.
+                      const isReadOnly = isDiscontinued;
                       return (
                         <tr
                           key={sku.id}
-                          className={`cursor-pointer border-t hover:bg-surface-alt ${showColorHeader ? 'border-edge-strong' : 'border-edge'} ${isSelected ? 'bg-brand-soft/40' : ''}`}
-                          onClick={() => handleSelectSku(sku.id)}
+                          className={`border-t hover:bg-surface-alt ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${showColorHeader ? 'border-edge-strong' : 'border-edge'} ${isSelected ? 'bg-brand-soft/40' : ''}`}
+                          onClick={isReadOnly ? undefined : () => handleSelectSku(sku.id)}
                           title={sku.code}
                         >
                           <td className="w-8 px-2 py-2 text-center align-middle">
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              disabled={isPublished}
+                              disabled={isPublished || isDiscontinued}
                               onChange={(e) => toggleSkuSelection(sku.id, e)}
                               onClick={(e) => e.stopPropagation()}
                               className="h-3.5 w-3.5 cursor-pointer accent-[#a0673a] disabled:cursor-not-allowed disabled:opacity-40"
-                              title={isPublished ? 'SKUs publicados não podem ser excluídos' : undefined}
+                              title={
+                                isPublished
+                                  ? 'SKUs publicados não podem ser excluídos'
+                                  : isDiscontinued
+                                    ? 'SKUs descontinuados são somente leitura'
+                                    : undefined
+                              }
                             />
                           </td>
                           <td className="px-3 py-2 align-middle text-[11px] text-body">
@@ -2903,7 +2968,7 @@ export function ProductDetailsPage() {
                   )}
 
                   {/* Delete SKU */}
-                  {selectedSku.status !== 'PUBLISHED' && (
+                  {isSkuActionable(selectedSku.status) && (
                     <div className="border-t border-edge pt-3">
                       {!showDeleteSkuConfirm ? (
                         <button
