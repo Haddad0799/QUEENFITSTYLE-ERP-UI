@@ -5,6 +5,7 @@ import { apiClient } from '../lib/api-client';
 import { extractCategories } from '../lib/category-utils';
 import { DownloadIcon } from '../components/icons';
 import { useToast } from '../components/toast/ToastProvider';
+import { CategoryTreeFilter } from '../components/CategoryTreeFilter';
 import { useUrlFilters } from '../hooks/useUrlFilters';
 import type {
   PageResponseProductSummaryDTO,
@@ -116,7 +117,8 @@ export function ProductsPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await apiClient.get<unknown>('/erp/categories');
+      // Árvore com hierarquia pai → subcategorias para o filtro hierárquico.
+      const response = await apiClient.get<unknown>('/erp/categories/tree');
       setCategories(extractCategories(response));
     } catch {
       // silencioso por enquanto; a UX principal continua funcionando
@@ -140,8 +142,8 @@ export function ProductsPage() {
     setValues({ status: value as ProductStatus | '', page: 0 });
   };
 
-  const handleCategoryChange = (value: string) => {
-    setValues({ categoryId: value ? Number(value) : 0, page: 0 });
+  const handleCategoryChange = (nextCategoryId: number) => {
+    setValues({ categoryId: nextCategoryId, page: 0 });
   };
 
   const handleDeleteProduct = async () => {
@@ -237,18 +239,11 @@ export function ProductsPage() {
             ))}
           </select>
 
-          <select
-            value={categoryId || ''}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-            className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-8 sm:w-auto sm:min-w-[180px]"
-          >
-            <option value="">Todas as categorias</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <CategoryTreeFilter
+            categories={categories}
+            value={categoryId}
+            onChange={handleCategoryChange}
+          />
         </div>
 
         <span className="text-[11px] text-faint sm:ml-auto">
