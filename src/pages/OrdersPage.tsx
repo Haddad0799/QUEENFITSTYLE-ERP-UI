@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE } from '../config';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import { OrderFilters } from '../components/orders/OrderFilters';
 import { OrderTable } from '../components/orders/OrderTable';
 import { CancelOrderDialog } from '../components/orders/CancelOrderDialog';
@@ -17,50 +17,35 @@ import type {
   OrderSummaryDTO,
 } from '../types/orders';
 
-const FILTER_KEYS = [
-  'status',
-  'customerName',
-  'createdAtFrom',
-  'createdAtTo',
-] as const satisfies readonly (keyof OrderListFilters)[];
-
-const parseFiltersFromParams = (params: URLSearchParams): OrderListFilters => {
-  const filters: OrderListFilters = {};
-  for (const key of FILTER_KEYS) {
-    const value = params.get(key);
-    if (value) {
-      if (key === 'status') {
-        filters.status = value as OrderStatus;
-      } else {
-        (filters as Record<string, string>)[key] = value;
-      }
-    }
-  }
-  return filters;
-};
-
-const serializeFiltersToParams = (
-  filters: OrderListFilters,
-  page: number,
-): URLSearchParams => {
-  const params = new URLSearchParams();
-  for (const key of FILTER_KEYS) {
-    const value = filters[key];
-    if (value) params.set(key, String(value));
-  }
-  if (page > 0) params.set('page', String(page));
-  return params;
+/** Estado de filtros + paginação dos pedidos, sincronizado com a URL. */
+type OrderUrlState = {
+  status: OrderStatus | '';
+  customerName: string;
+  createdAtFrom: string;
+  createdAtTo: string;
+  page: number;
 };
 
 export function OrdersPage() {
   const toast = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { values, setValues } = useUrlFilters<OrderUrlState>({
+    status: '',
+    customerName: '',
+    createdAtFrom: '',
+    createdAtTo: '',
+    page: 0,
+  });
 
-  const filters = useMemo(
-    () => parseFiltersFromParams(searchParams),
-    [searchParams],
+  const page = values.page;
+  const filters = useMemo<OrderListFilters>(
+    () => ({
+      status: values.status,
+      customerName: values.customerName,
+      createdAtFrom: values.createdAtFrom,
+      createdAtTo: values.createdAtTo,
+    }),
+    [values],
   );
-  const page = Number(searchParams.get('page') ?? '0') || 0;
 
   const { data, isLoading, isRefetching, error, refetch } = useOrders({
     page,
@@ -97,27 +82,26 @@ export function OrdersPage() {
   const [isReturning, setIsReturning] = useState(false);
   const [returnError, setReturnError] = useState<string | null>(null);
 
-  const updateUrl = useCallback(
-    (nextFilters: OrderListFilters, nextPage: number) => {
-      setSearchParams(serializeFiltersToParams(nextFilters, nextPage), {
-        replace: true,
-      });
-    },
-    [setSearchParams],
-  );
-
   const handleFiltersChange = useCallback(
     (next: OrderListFilters) => {
-      updateUrl(next, 0);
+      // O OrderFilters envia o estado completo dos filtros (inclusive ao
+      // limpar), então preenchemos os ausentes com vazio para zerá-los.
+      setValues({
+        status: next.status ?? '',
+        customerName: next.customerName ?? '',
+        createdAtFrom: next.createdAtFrom ?? '',
+        createdAtTo: next.createdAtTo ?? '',
+        page: 0,
+      });
     },
-    [updateUrl],
+    [setValues],
   );
 
   const handlePageChange = useCallback(
     (nextPage: number) => {
-      updateUrl(filters, nextPage);
+      setValues({ page: nextPage });
     },
-    [filters, updateUrl],
+    [setValues],
   );
 
   const totalItems = data?.totalElements ?? 0;

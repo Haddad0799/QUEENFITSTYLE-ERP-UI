@@ -5,6 +5,7 @@ import { apiClient } from '../lib/api-client';
 import { extractCategories } from '../lib/category-utils';
 import { DownloadIcon } from '../components/icons';
 import { useToast } from '../components/toast/ToastProvider';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import type {
   PageResponseProductSummaryDTO,
   ProductStatus,
@@ -12,9 +13,12 @@ import type {
 } from '../types/products';
 import type { Category } from '../types/categories';
 
-type Filters = {
-  status?: ProductStatus | '';
-  categoryId?: number | '';
+/** Estado de filtros sincronizado com a URL. `categoryId: 0` significa "todas". */
+type ProductFilterState = {
+  status: ProductStatus | '';
+  categoryId: number;
+  view: ProductView;
+  page: number;
 };
 
 /**
@@ -63,9 +67,13 @@ const STATUS_BADGE: Record<ProductStatus, string> = {
 export function ProductsPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [filters, setFilters] = useState<Filters>({});
-  const [view, setView] = useState<ProductView>('active');
-  const [page, setPage] = useState(0);
+  const { values, setValues } = useUrlFilters<ProductFilterState>({
+    status: '',
+    categoryId: 0,
+    view: 'active',
+    page: 0,
+  });
+  const { status, categoryId, view, page } = values;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PageResponseProductSummaryDTO | null>(null);
@@ -82,8 +90,8 @@ export function ProductsPage() {
     setError(null);
     try {
       const params: Record<string, unknown> = {
-        status: filters.status || undefined,
-        categoryId: filters.categoryId || undefined,
+        status: status || undefined,
+        categoryId: categoryId || undefined,
         page,
         size: DEFAULT_PAGE_SIZE,
       };
@@ -122,24 +130,18 @@ export function ProductsPage() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, view, filters.status, filters.categoryId]);
+  }, [page, view, status, categoryId]);
 
   const handleViewChange = (value: string) => {
-    setPage(0);
-    setView(value as ProductView);
+    setValues({ view: value as ProductView, page: 0 });
   };
 
   const handleStatusChange = (value: string) => {
-    setPage(0);
-    setFilters((prev) => ({ ...prev, status: value as ProductStatus | '' }));
+    setValues({ status: value as ProductStatus | '', page: 0 });
   };
 
   const handleCategoryChange = (value: string) => {
-    setPage(0);
-    setFilters((prev) => ({
-      ...prev,
-      categoryId: value ? Number(value) : '',
-    }));
+    setValues({ categoryId: value ? Number(value) : 0, page: 0 });
   };
 
   const handleDeleteProduct = async () => {
@@ -222,21 +224,21 @@ export function ProductsPage() {
           </select>
 
           <select
-            value={filters.status ?? ''}
+            value={status}
             onChange={(e) => handleStatusChange(e.target.value)}
             disabled={view === 'archived'}
             className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-auto sm:min-w-[180px]"
           >
             <option value="">Todos os status</option>
-            {SELECTABLE_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_LABEL[status]}
+            {SELECTABLE_STATUSES.map((option) => (
+              <option key={option} value={option}>
+                {STATUS_LABEL[option]}
               </option>
             ))}
           </select>
 
           <select
-            value={filters.categoryId ?? ''}
+            value={categoryId || ''}
             onChange={(e) => handleCategoryChange(e.target.value)}
             className="h-10 w-full rounded-xl border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 sm:h-8 sm:w-auto sm:min-w-[180px]"
           >
@@ -468,7 +470,7 @@ export function ProductsPage() {
           <div className="flex items-center gap-1.5">
             <button
               disabled={!canGoPrev}
-              onClick={() => canGoPrev && setPage((p) => Math.max(0, p - 1))}
+              onClick={() => canGoPrev && setValues({ page: Math.max(0, page - 1) })}
               className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Anterior
@@ -476,7 +478,10 @@ export function ProductsPage() {
             <button
               disabled={!canGoNext}
               onClick={() =>
-                canGoNext && setPage((p) => (totalPages ? Math.min(totalPages - 1, p + 1) : p))
+                canGoNext &&
+                setValues({
+                  page: totalPages ? Math.min(totalPages - 1, page + 1) : page,
+                })
               }
               className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >

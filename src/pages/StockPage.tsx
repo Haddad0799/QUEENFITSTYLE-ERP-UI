@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE } from '../config';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import { useStockProducts } from '../hooks/stock/useStock';
 import { StockStatusBadge } from '../components/stock/StockStatusBadge';
 import { RefreshCwIcon } from '../components/icons';
@@ -9,16 +10,27 @@ import type { StockProductDTO } from '../types/stock';
 export function StockPage() {
   const navigate = useNavigate();
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
+  const { values, setValues } = useUrlFilters<{ search: string; page: number }>({
+    search: '',
+    page: 0,
+  });
+  const { search, page } = values;
+
+  // Texto local do campo de busca; comitado na URL com debounce.
+  const [searchInput, setSearchInput] = useState(search);
+  // Mantém o campo sincronizado quando a URL muda por fora (voltar do
+  // navegador / refresh). Padrão de "derived state" para não usar efeito.
+  const [syncedSearch, setSyncedSearch] = useState(search);
+  if (search !== syncedSearch) {
+    setSyncedSearch(search);
+    setSearchInput(search);
+  }
 
   // Debounce da busca livre para não disparar uma request por caractere.
   useEffect(() => {
     const handle = window.setTimeout(() => {
       if (searchInput !== search) {
-        setPage(0);
-        setSearch(searchInput);
+        setValues({ search: searchInput, page: 0 });
       }
     }, 300);
     return () => window.clearTimeout(handle);
@@ -252,7 +264,7 @@ export function StockPage() {
           <div className="flex items-center gap-1.5">
             <button
               disabled={!canGoPrev}
-              onClick={() => canGoPrev && setPage((p) => Math.max(0, p - 1))}
+              onClick={() => canGoPrev && setValues({ page: Math.max(0, page - 1) })}
               className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Anterior
@@ -260,7 +272,10 @@ export function StockPage() {
             <button
               disabled={!canGoNext}
               onClick={() =>
-                canGoNext && setPage((p) => (totalPages ? Math.min(totalPages - 1, p + 1) : p))
+                canGoNext &&
+                setValues({
+                  page: totalPages ? Math.min(totalPages - 1, page + 1) : page,
+                })
               }
               className="inline-flex h-8 items-center rounded-lg border border-edge-strong bg-surface px-3 text-xs font-medium text-body transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
