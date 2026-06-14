@@ -427,11 +427,23 @@ export function ProductsPage() {
               }
 
               return (
-                <button
+                // Linha clicável como div (não button) para permitir o botão
+                // "Excluir" aninhado — button dentro de button quebra a hidratação.
+                <div
                   key={product.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => navigate(`/products/${product.id}`)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
+                  onKeyDown={(e) => {
+                    // Ignora eventos vindos de filhos (ex.: foco no "Excluir"),
+                    // que têm seu próprio acionamento por teclado.
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/products/${product.id}`);
+                    }
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt focus:outline-none focus-visible:bg-surface-alt focus-visible:ring-2 focus-visible:ring-brand/40 active:bg-surface-alt"
                 >
                   {content}
                   {product.status !== 'PUBLISHED' && (
@@ -446,7 +458,7 @@ export function ProductsPage() {
                   {product.status === 'PUBLISHED' && (
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-faint"><polyline points="9 18 15 12 9 6"/></svg>
                   )}
-                </button>
+                </div>
               );
             })}
         </div>
