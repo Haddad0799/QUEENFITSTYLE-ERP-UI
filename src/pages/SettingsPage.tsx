@@ -35,8 +35,8 @@ export function SettingsPage() {
     setLoadError(null);
     try {
       const data = await settingsService.get();
-      const nextWhatsapp = data.whatsapp_phone ?? '';
-      const nextEmail = data.notification_email ?? '';
+      const nextWhatsapp = data.whatsappPhone ?? '';
+      const nextEmail = data.notificationEmail ?? '';
       setWhatsapp(nextWhatsapp);
       setEmail(nextEmail);
       setInitial({ whatsapp: nextWhatsapp, email: nextEmail });
@@ -83,11 +83,11 @@ export function SettingsPage() {
     setSaveError(null);
     try {
       const data = await settingsService.update({
-        whatsapp_phone: onlyDigits(whatsapp),
-        notification_email: email.trim(),
+        whatsappPhone: onlyDigits(whatsapp),
+        notificationEmail: email.trim(),
       });
-      const nextWhatsapp = data.whatsapp_phone ?? onlyDigits(whatsapp);
-      const nextEmail = data.notification_email ?? email.trim();
+      const nextWhatsapp = data.whatsappPhone ?? onlyDigits(whatsapp);
+      const nextEmail = data.notificationEmail ?? email.trim();
       setWhatsapp(nextWhatsapp);
       setEmail(nextEmail);
       setInitial({ whatsapp: nextWhatsapp, email: nextEmail });
