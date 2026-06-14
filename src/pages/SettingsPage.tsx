@@ -2,17 +2,15 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { settingsService } from '../services/settings';
 import { useToast } from '../components/toast/ToastProvider';
 import { MessageCircleIcon, MailIcon } from '../components/icons';
+import {
+  isValidLocalPhone,
+  maskLocalPhone,
+  stripPhoneCountryCode,
+  withPhoneCountryCode,
+} from '../lib/format';
 
 /** E-mail simples: algo@algo.dominio. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const onlyDigits = (value: string) => value.replace(/\D/g, '');
-
-/** Telefone E.164 com código do país: entre 10 e 15 dígitos. */
-const isValidPhone = (value: string) => {
-  const digits = onlyDigits(value);
-  return digits.length >= 10 && digits.length <= 15;
-};
 
 const isValidEmail = (value: string) => EMAIL_RE.test(value.trim());
 
@@ -35,7 +33,9 @@ export function SettingsPage() {
     setLoadError(null);
     try {
       const data = await settingsService.get();
-      const nextWhatsapp = data.whatsappPhone ?? '';
+      // Backend guarda 55 + DDD + número; na tela exibimos só DDD + número
+      // mascarado — a dona não precisa pensar no código do país.
+      const nextWhatsapp = maskLocalPhone(stripPhoneCountryCode(data.whatsappPhone));
       const nextEmail = data.notificationEmail ?? '';
       setWhatsapp(nextWhatsapp);
       setEmail(nextEmail);
@@ -57,8 +57,8 @@ export function SettingsPage() {
 
   const whatsappError = useMemo(() => {
     if (whatsapp.trim().length === 0) return 'Informe o número de WhatsApp.';
-    if (!isValidPhone(whatsapp)) {
-      return 'Use apenas dígitos com o código do país (ex.: 5511999998888).';
+    if (!isValidLocalPhone(whatsapp)) {
+      return 'Informe DDD + número, ex.: (61) 98377-0131.';
     }
     return null;
   }, [whatsapp]);
@@ -83,10 +83,15 @@ export function SettingsPage() {
     setSaveError(null);
     try {
       const data = await settingsService.update({
-        whatsappPhone: onlyDigits(whatsapp),
+        // Reanexa o 55 só na hora de enviar — o backend continua recebendo o
+        // número completo (ex.: 5561983770131).
+        whatsappPhone: withPhoneCountryCode(whatsapp),
         notificationEmail: email.trim(),
       });
-      const nextWhatsapp = data.whatsappPhone ?? onlyDigits(whatsapp);
+      const nextWhatsapp =
+        data.whatsappPhone != null
+          ? maskLocalPhone(stripPhoneCountryCode(data.whatsappPhone))
+          : maskLocalPhone(whatsapp);
       const nextEmail = data.notificationEmail ?? email.trim();
       setWhatsapp(nextWhatsapp);
       setEmail(nextEmail);
@@ -147,12 +152,12 @@ export function SettingsPage() {
             id="whatsapp"
             label="WhatsApp de atendimento"
             icon={<MessageCircleIcon className="h-3.5 w-3.5" />}
-            helper="Número que aparece para a cliente na loja e nos avisos de pedido. Inclua o código do país (ex.: 55 para o Brasil)."
-            placeholder="5511999998888"
+            helper="Número que aparece para a cliente na loja e nos avisos de pedido."
+            placeholder="(61) 98377-0131"
             inputMode="tel"
             autoComplete="tel"
             value={whatsapp}
-            onChange={setWhatsapp}
+            onChange={(value) => setWhatsapp(maskLocalPhone(value))}
             disabled={isSaving}
             error={whatsappError}
           />
