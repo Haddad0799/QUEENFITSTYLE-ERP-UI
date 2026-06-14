@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { ChangePasswordDialog } from './ChangePasswordDialog';
-import { LockIcon, LogOutIcon, UserIcon } from '../icons';
+import { LogOutIcon, UserIcon } from '../icons';
 
 export function UserMenu() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -89,12 +89,12 @@ export function UserMenu() {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
-                setShowChangePassword(true);
+                navigate('/account');
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-heading transition hover:bg-surface-alt"
             >
-              <LockIcon className="h-3.5 w-3.5" />
-              Alterar senha
+              <UserIcon className="h-3.5 w-3.5" />
+              Minha conta
             </button>
             <button
               type="button"
@@ -111,11 +111,6 @@ export function UserMenu() {
           </div>
         )}
       </div>
-
-      <ChangePasswordDialog
-        open={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-      />
     </>
   );
 }

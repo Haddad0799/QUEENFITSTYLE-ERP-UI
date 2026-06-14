@@ -18,6 +18,7 @@ import { StockPage } from './pages/StockPage';
 import { StockProductDetailsPage } from './pages/StockProductDetailsPage';
 import { OrderDetailsPage } from './pages/OrderDetailsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { MyAccountPage } from './pages/MyAccountPage';
 import { LoginPage } from './pages/LoginPage';
 import { ToastProvider } from './components/toast/ToastProvider';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -64,6 +65,7 @@ function App() {
                         element={<OrderDetailsPage />}
                       />
                       <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/account" element={<MyAccountPage />} />
                       <Route
                         path="*"
                         element={

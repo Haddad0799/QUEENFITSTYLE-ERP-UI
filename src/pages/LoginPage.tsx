@@ -124,7 +124,7 @@ export function LoginPage() {
           Após entrar com a senha temporária, vá em
           <br />
           <span className="font-medium text-heading">
-            Menu do usuário → Alterar senha
+            Menu do usuário → Minha conta
           </span>{' '}
           no canto superior direito.
         </p>
