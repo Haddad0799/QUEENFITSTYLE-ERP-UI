@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useReturnToList } from '../hooks/useListReturn';
 import { OrderCustomerCard } from '../components/orders/OrderCustomerCard';
 import { OrderDeliveryAddressCard } from '../components/orders/OrderDeliveryAddressCard';
 import { OrderDetailsCard } from '../components/orders/OrderDetailsCard';
@@ -25,7 +26,7 @@ import {
 
 export function OrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const returnToOrders = useReturnToList('/orders');
   const toast = useToast();
 
   const orderId = id ? Number(id) : null;
@@ -146,7 +147,7 @@ export function OrderDetailsPage() {
     return (
       <div className="flex flex-col gap-3">
         <button
-          onClick={() => navigate('/orders')}
+          onClick={returnToOrders}
           className="inline-flex w-fit items-center gap-1.5 text-[11px] text-muted hover:text-heading"
         >
           ← Voltar para pedidos
@@ -188,7 +189,7 @@ export function OrderDetailsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
           <button
-            onClick={() => navigate('/orders')}
+            onClick={returnToOrders}
             className="inline-flex w-fit items-center gap-1.5 text-[11px] text-muted transition hover:text-heading"
           >
             ← Pedidos

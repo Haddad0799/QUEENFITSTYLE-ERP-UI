@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useReturnToList } from '../hooks/useListReturn';
 import { CategoryLeafPicker } from '../components/CategoryLeafPicker';
 import {
   ProductDescriptionField,
@@ -113,7 +114,7 @@ export function ProductDetailsPage() {
       }
     };
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const returnToProducts = useReturnToList('/products');
   const toast = useToast();
   const [data, setData] = useState<ProductDetailsDTO | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1278,7 +1279,7 @@ export function ProductDetailsPage() {
   };
 
   const handleBack = () => {
-    navigate('/products');
+    returnToProducts();
   };
 
   const handleDeleteProduct = async () => {
@@ -1287,7 +1288,7 @@ export function ProductDetailsPage() {
     setDeleteProductError(null);
     try {
       await apiClient.delete(`/erp/products/${productId}`);
-      navigate('/products');
+      returnToProducts();
     } catch (err) {
       setDeleteProductError(
         err instanceof Error ? err.message : 'Erro ao excluir produto.',

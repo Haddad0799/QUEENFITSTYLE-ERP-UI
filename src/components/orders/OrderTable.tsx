@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useOpenDetail } from '../../hooks/useListReturn';
 import type { OrderSummaryDTO } from '../../types/orders';
 import { formatBRL, formatDateShort, formatPhone } from '../../lib/format';
 import { OrderStatusBadge } from './OrderStatusBadge';
@@ -104,7 +104,7 @@ export function OrderTable({
   onDeliver,
   onReturn,
 }: Props) {
-  const navigate = useNavigate();
+  const openDetail = useOpenDetail();
 
   const isEmpty = !isLoading && !error && items.length === 0;
   const colCount = 9;
@@ -183,7 +183,7 @@ export function OrderTable({
                 <tr
                   key={order.orderId}
                   className="cursor-pointer border-t border-edge transition-colors hover:bg-surface-alt"
-                  onClick={() => navigate(`/orders/${order.orderId}`)}
+                  onClick={() => openDetail(`/orders/${order.orderId}`)}
                 >
                   <td className="px-4 py-3 align-middle">
                     <span className="text-sm font-semibold text-heading">
@@ -241,7 +241,7 @@ export function OrderTable({
                     >
                       <button
                         type="button"
-                        onClick={() => navigate(`/orders/${order.orderId}`)}
+                        onClick={() => openDetail(`/orders/${order.orderId}`)}
                         className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
                       >
                         Detalhes
@@ -292,7 +292,7 @@ export function OrderTable({
             <button
               key={order.orderId}
               type="button"
-              onClick={() => navigate(`/orders/${order.orderId}`)}
+              onClick={() => openDetail(`/orders/${order.orderId}`)}
               className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt active:bg-surface-alt"
             >
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-soft text-sm font-semibold text-brand">

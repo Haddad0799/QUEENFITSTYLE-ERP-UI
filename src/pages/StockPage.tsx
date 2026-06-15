@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useOpenDetail } from '../hooks/useListReturn';
 import { DEFAULT_PAGE_SIZE } from '../config';
 import { useUrlFilters } from '../hooks/useUrlFilters';
 import { useStockProducts } from '../hooks/stock/useStock';
@@ -8,7 +8,7 @@ import { RefreshCwIcon } from '../components/icons';
 import type { StockProductDTO } from '../types/stock';
 
 export function StockPage() {
-  const navigate = useNavigate();
+  const openDetail = useOpenDetail();
 
   const { values, setValues } = useUrlFilters<{ search: string; page: number }>({
     search: '',
@@ -51,7 +51,7 @@ export function StockPage() {
   const canGoNext = totalPages > 0 && page < totalPages - 1;
 
   const openProduct = (product: StockProductDTO) =>
-    navigate(`/stock/${product.productId}`, {
+    openDetail(`/stock/${product.productId}`, {
       state: { productName: product.productName },
     });
 

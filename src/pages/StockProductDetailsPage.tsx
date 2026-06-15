@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
+import { useReturnToList } from '../hooks/useListReturn';
 import { apiClient } from '../lib/api-client';
 import { stockService } from '../services/stock';
 import { useToast } from '../components/toast/ToastProvider';
@@ -45,7 +46,7 @@ async function fetchStockProduct(
 export function StockProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
-  const navigate = useNavigate();
+  const returnToStock = useReturnToList('/stock');
   const location = useLocation();
   const toast = useToast();
 
@@ -142,7 +143,7 @@ export function StockProductDetailsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/stock')}
+            onClick={returnToStock}
             className="inline-flex h-9 items-center rounded-xl border border-edge-strong bg-surface px-3 text-xs font-medium text-body hover:text-heading active:scale-[0.98]"
           >
             ← Voltar

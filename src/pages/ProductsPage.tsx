@@ -7,6 +7,7 @@ import { DownloadIcon } from '../components/icons';
 import { useToast } from '../components/toast/ToastProvider';
 import { CategoryTreeFilter } from '../components/CategoryTreeFilter';
 import { useUrlFilters } from '../hooks/useUrlFilters';
+import { useOpenDetail } from '../hooks/useListReturn';
 import type {
   PageResponseProductSummaryDTO,
   ProductStatus,
@@ -67,6 +68,7 @@ const STATUS_BADGE: Record<ProductStatus, string> = {
 
 export function ProductsPage() {
   const navigate = useNavigate();
+  const openDetail = useOpenDetail();
   const toast = useToast();
   const { values, setValues } = useUrlFilters<ProductFilterState>({
     status: '',
@@ -336,7 +338,7 @@ export function ProductsPage() {
                       ) : (
                         <div className="flex justify-end gap-1.5">
                           <button
-                            onClick={() => navigate(`/products/${product.id}`)}
+                            onClick={() => openDetail(`/products/${product.id}`)}
                             className="inline-flex items-center gap-1 rounded-lg border border-edge-strong bg-surface px-2.5 py-1 text-[11px] font-medium text-heading transition hover:border-brand hover:text-brand"
                           >
                             Detalhes
@@ -433,14 +435,14 @@ export function ProductsPage() {
                   key={product.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/products/${product.id}`)}
+                  onClick={() => openDetail(`/products/${product.id}`)}
                   onKeyDown={(e) => {
                     // Ignora eventos vindos de filhos (ex.: foco no "Excluir"),
                     // que têm seu próprio acionamento por teclado.
                     if (e.target !== e.currentTarget) return;
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      navigate(`/products/${product.id}`);
+                      openDetail(`/products/${product.id}`);
                     }
                   }}
                   className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt focus:outline-none focus-visible:bg-surface-alt focus-visible:ring-2 focus-visible:ring-brand/40 active:bg-surface-alt"
