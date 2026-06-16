@@ -1,19 +1,38 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { authService } from '../services/auth';
+import { ApiError } from '../lib/api-client';
+import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/toast/ToastProvider';
 import { MailIcon, LockIcon } from '../components/icons';
 
 /** E-mail simples: algo@algo.dominio. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+const WRONG_PASSWORD_MESSAGE = 'Senha atual incorreta.';
 
 const isValidEmail = (value: string) => EMAIL_RE.test(value.trim());
 
 const messageFrom = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
 
+/** 401 nesses endpoints = senha atual errada (não sessão expirada). */
+const isWrongPasswordError = (err: unknown) =>
+  err instanceof ApiError && err.status === 401;
+
 export function MyAccountPage() {
   const toast = useToast();
+  const { logout } = useAuth();
+
+  /**
+   * Após uma troca de credencial bem-sucedida o token atual deixa de valer:
+   * mostramos a mensagem e deslogamos para forçar um novo login com a
+   * credencial nova. O toast é renderizado acima do roteador, então
+   * sobrevive ao redirecionamento para a tela de login.
+   */
+  const finishWithLogout = (title: string, description: string) => {
+    toast.success(title, description);
+    logout();
+  };
 
   // E-mail atual carregado do backend, para exibir e detectar alterações.
   const [currentEmail, setCurrentEmail] = useState('');
@@ -55,11 +74,10 @@ export function MyAccountPage() {
         isLoadingEmail={isLoadingEmail}
         emailLoadError={emailLoadError}
         onRetryLoad={loadEmail}
-        onEmailUpdated={setCurrentEmail}
-        toastSuccess={toast.success}
+        onSuccessLogout={finishWithLogout}
       />
 
-      <PasswordSection toastSuccess={toast.success} />
+      <PasswordSection onSuccessLogout={finishWithLogout} />
     </div>
   );
 }
@@ -69,21 +87,22 @@ function EmailSection({
   isLoadingEmail,
   emailLoadError,
   onRetryLoad,
-  onEmailUpdated,
-  toastSuccess,
+  onSuccessLogout,
 }: {
   currentEmail: string;
   isLoadingEmail: boolean;
   emailLoadError: string | null;
   onRetryLoad: () => void;
-  onEmailUpdated: (email: string) => void;
-  toastSuccess: (title: string, description?: string) => void;
+  onSuccessLogout: (title: string, description: string) => void;
 }) {
   const [newEmail, setNewEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPasswordError, setCurrentPasswordError] = useState<
+    string | null
+  >(null);
 
   // Mantém o campo sincronizado com o e-mail carregado/atualizado.
   useEffect(() => {
@@ -110,20 +129,22 @@ function EmailSection({
     if (!canSubmit) return;
     setIsSaving(true);
     setError(null);
+    setCurrentPasswordError(null);
     try {
-      const trimmed = newEmail.trim();
       await authService.updateEmail({
-        newEmail: trimmed,
+        newEmail: newEmail.trim(),
         currentPassword,
       });
-      onEmailUpdated(trimmed);
-      setCurrentPassword('');
-      toastSuccess(
-        'E-mail atualizado',
-        'Use o novo e-mail no próximo acesso ao painel.',
+      onSuccessLogout(
+        'E-mail alterado com sucesso',
+        'Faça login com seu novo e-mail.',
       );
     } catch (err) {
-      setError(messageFrom(err, 'Não foi possível atualizar o e-mail.'));
+      if (isWrongPasswordError(err)) {
+        setCurrentPasswordError(WRONG_PASSWORD_MESSAGE);
+      } else {
+        setError(messageFrom(err, 'Não foi possível atualizar o e-mail.'));
+      }
     } finally {
       setIsSaving(false);
     }
@@ -167,11 +188,15 @@ function EmailSection({
           label="Senha atual"
           autoComplete="current-password"
           value={currentPassword}
-          onChange={setCurrentPassword}
+          onChange={(v) => {
+            setCurrentPassword(v);
+            if (currentPasswordError) setCurrentPasswordError(null);
+          }}
           show={showPassword}
           onToggleShow={() => setShowPassword((v) => !v)}
           disabled={isSaving || isLoadingEmail}
           helper="Confirme com sua senha atual para alterar o e-mail."
+          error={currentPasswordError}
         />
 
         {error && (
@@ -194,9 +219,9 @@ function EmailSection({
 }
 
 function PasswordSection({
-  toastSuccess,
+  onSuccessLogout,
 }: {
-  toastSuccess: (title: string, description?: string) => void;
+  onSuccessLogout: (title: string, description: string) => void;
 }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -204,6 +229,9 @@ function PasswordSection({
   const [showPasswords, setShowPasswords] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPasswordError, setCurrentPasswordError] = useState<
+    string | null
+  >(null);
 
   const validation = useMemo(() => {
     if (newPassword.length === 0 && confirmPassword.length === 0) return null;
@@ -231,17 +259,19 @@ function PasswordSection({
     if (!canSubmit) return;
     setIsSaving(true);
     setError(null);
+    setCurrentPasswordError(null);
     try {
       await authService.changePassword({ currentPassword, newPassword });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      toastSuccess(
-        'Senha atualizada',
-        'Use a nova senha no próximo acesso ao painel.',
+      onSuccessLogout(
+        'Senha alterada com sucesso',
+        'Faça login com sua nova senha.',
       );
     } catch (err) {
-      setError(messageFrom(err, 'Não foi possível atualizar a senha.'));
+      if (isWrongPasswordError(err)) {
+        setCurrentPasswordError(WRONG_PASSWORD_MESSAGE);
+      } else {
+        setError(messageFrom(err, 'Não foi possível atualizar a senha.'));
+      }
     } finally {
       setIsSaving(false);
     }
@@ -279,10 +309,14 @@ function PasswordSection({
           label="Senha atual"
           autoComplete="current-password"
           value={currentPassword}
-          onChange={setCurrentPassword}
+          onChange={(v) => {
+            setCurrentPassword(v);
+            if (currentPasswordError) setCurrentPasswordError(null);
+          }}
           show={showPasswords}
           disabled={isSaving}
           helper="Confirme com sua senha atual para alterar a senha."
+          error={currentPasswordError}
         />
 
         <label className="flex items-center gap-2 text-[11px] text-muted">
@@ -431,6 +465,7 @@ function PasswordField({
   disabled,
   autoComplete,
   helper,
+  error,
 }: {
   id: string;
   label: string;
@@ -441,6 +476,7 @@ function PasswordField({
   disabled?: boolean;
   autoComplete?: string;
   helper?: string;
+  error?: string | null;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -458,7 +494,12 @@ function PasswordField({
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           autoComplete={autoComplete}
-          className="h-9 w-full rounded-lg border border-edge-strong bg-surface-input px-3 text-xs text-heading outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60"
+          aria-invalid={error ? true : undefined}
+          className={`h-9 w-full rounded-lg border bg-surface-input px-3 text-xs text-heading outline-none placeholder:text-faint focus:ring-2 disabled:opacity-60 ${
+            error
+              ? 'border-danger-edge focus:border-danger-edge focus:ring-danger/25'
+              : 'border-edge-strong focus:border-brand focus:ring-brand/25'
+          }`}
           style={onToggleShow ? { paddingRight: '4rem' } : undefined}
         />
         {onToggleShow && (
@@ -472,7 +513,13 @@ function PasswordField({
           </button>
         )}
       </div>
-      {helper && <p className="text-[11px] leading-relaxed text-faint">{helper}</p>}
+      {error ? (
+        <p className="text-[11px] text-danger">{error}</p>
+      ) : (
+        helper && (
+          <p className="text-[11px] leading-relaxed text-faint">{helper}</p>
+        )
+      )}
     </div>
   );
 }

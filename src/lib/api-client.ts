@@ -32,8 +32,22 @@ export const AUTH_UNAUTHORIZED_EVENT = 'qf:auth:unauthorized';
 
 const PUBLIC_PATH_PREFIXES = ['/auth/login'];
 
+/**
+ * Endpoints onde um 401 significa "senha atual incorreta" — uma falha de
+ * validação do próprio formulário — e não "sessão expirada". O interceptor
+ * de logout global NÃO deve agir nesses casos: o usuário continua logado e
+ * o erro é tratado inline pela tela que fez a chamada.
+ */
+const CREDENTIAL_CHANGE_PATH_PREFIXES = [
+  '/auth/me/email',
+  '/auth/me/password',
+];
+
 const isPublicPath = (path: string) =>
   PUBLIC_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+
+const isCredentialChangePath = (path: string) =>
+  CREDENTIAL_CHANGE_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
 
 const readToken = (): string | null => {
   try {
@@ -99,7 +113,11 @@ async function handleResponse<T>(
       // not JSON — keep raw text
     }
 
-    if (response.status === 401 && !isPublicPath(path)) {
+    if (
+      response.status === 401 &&
+      !isPublicPath(path) &&
+      !isCredentialChangePath(path)
+    ) {
       clearToken();
       try {
         window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
